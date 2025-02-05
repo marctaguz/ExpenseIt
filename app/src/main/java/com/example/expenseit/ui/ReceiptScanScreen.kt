@@ -1,11 +1,9 @@
 package com.example.expenseit.ui
 
-import android.app.Activity
 import android.app.Activity.RESULT_OK
 import android.net.Uri
-import android.widget.Toast
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,50 +17,45 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.example.expenseit.ui.components.PageHeader
-import com.google.mlkit.vision.common.InputImage
+import com.example.expenseit.utils.ReceiptApiClient
+import com.example.expenseit.utils.ScanResult
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_PDF
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.SCANNER_MODE_FULL
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.TextRecognizer
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import okhttp3.OkHttpClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 
-//azure api key and endpoint
-val apiKey = "3ZSxFSVH8fs9hBqXCQ4c3SUwePuWG7IIc0K77p6t0nJqm9GyKGJFJQQJ99BAACmepeSXJ3w3AAALACOGlnd4"
-val endpoint = "https://expenseit.cognitiveservices.azure.com/"
-
-val client = OkHttpClient()
-
 @Composable
 fun ReceiptScanScreen(navController: NavController, modifier: Modifier) {
-    // Initialize document scanner options
+
     val options = remember {
         GmsDocumentScannerOptions.Builder()
             .setScannerMode(SCANNER_MODE_FULL)
             .setGalleryImportAllowed(true)
-            .setPageLimit(5)
+            .setPageLimit(1)
             .setResultFormats(RESULT_FORMAT_JPEG, RESULT_FORMAT_PDF)
             .build()
     }
 
-    val scanner = remember { GmsDocumentScanning.getClient(options) }
-    val recognizer = remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
-    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val receiptApiClient = remember { ReceiptApiClient() }
+    var receiptData by remember { mutableStateOf<ScanResult?>(null) }
+    val scanner = remember { GmsDocumentScanning.getClient(options) }
+    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
@@ -78,15 +71,20 @@ fun ReceiptScanScreen(navController: NavController, modifier: Modifier) {
                     }
                 }
 
-                // Process each image for text recognition
                 imageUris.forEach { uri ->
-                    processTextFromImage(uri, recognizer, context)
-                }
+                    coroutineScope.launch {
+                        val scanResult = receiptApiClient.uploadReceipt()
+                        if (scanResult != null) {
+                            Log.d("ReceiptScanScreen", "Scan result: $scanResult")
+                            receiptData = scanResult // Update the state with the result
+                        } else {
+                            Log.e("ReceiptScanScreen", "Failed to scan receipt")
+                            receiptData = null // Reset the state
+                        }
+                    }                }
             }
         }
     )
-
-    val activity = LocalContext.current as Activity
 
     Scaffold(
         topBar = {
@@ -100,57 +98,39 @@ fun ReceiptScanScreen(navController: NavController, modifier: Modifier) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                imageUris.forEach { uri ->
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.fillMaxWidth()
+                receiptData?.let { data ->
+                    val merchantName = data.analyzeResult?.documents?.firstOrNull()?.fields?.get("MerchantName")?.valueString
+                    val transactionDate =
+                        data.analyzeResult?.documents?.firstOrNull()?.fields?.get("TransactionDate")?.valueDate
+                    val total =
+                        data.analyzeResult?.documents?.firstOrNull()?.fields?.get("Total")?.valueNumber
+
+                    Text(
+                        text = "Merchant Name: $merchantName\nTransaction Date: $transactionDate\nTotal: $total",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     )
                 }
-                Button(onClick = {
-                    scanner.getStartScanIntent(activity)
-                        .addOnSuccessListener {
-                            scannerLauncher.launch(
-                                IntentSenderRequest.Builder(it).build()
-                            )
+
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            val scanResult = receiptApiClient.uploadReceipt()
+                            if (scanResult != null) {
+                                Log.d("ReceiptScanScreen", "Scan result: $scanResult")
+                                receiptData = scanResult // Update the state with the result
+                            } else {
+                                Log.e("ReceiptScanScreen", "Failed to scan receipt")
+                                receiptData = null // Reset the state
+                            }
                         }
-                        .addOnFailureListener {
-                            Toast.makeText(
-                                activity,
-                                it.message,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                }) {
-                    Text(text = "Scan Document")
-                }
+                    },
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                Text(text = "Scan Document")
             }
+        }
         }
     )
 }
-
-private fun processTextFromImage(uri: Uri, recognizer: TextRecognizer, context: android.content.Context) {
-    val inputImage = InputImage.fromFilePath(context, uri)
-
-    recognizer.process(inputImage)
-        .addOnSuccessListener { visionText ->
-            // Handle the recognized text
-            for (block in visionText.textBlocks) {
-                val blockText = block.text
-                val confidenceScore = block
-                for (line in block.lines) {
-                    val lineText = line.text
-                    for (element in line.elements) {
-                        val elementText = element.text
-                        // Process each element here if needed
-                    }
-                }
-                Toast.makeText(context, "Recognized text: $blockText", Toast.LENGTH_SHORT).show()
-            }
-        }
-        .addOnFailureListener { e ->
-            Toast.makeText(context, "Text recognition failed: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-}
-

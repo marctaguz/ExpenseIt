@@ -32,11 +32,13 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.expenseit.R
 import com.example.expenseit.data.local.db.ExpenseDatabase
+import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.exyte.animatednavbar.AnimatedNavigationBar
 import com.exyte.animatednavbar.animation.balltrajectory.Parabolic
 import com.exyte.animatednavbar.animation.indendshape.Height
@@ -55,6 +57,7 @@ enum class NavigationBarItems(val iconRes: Int, val route: String) {
 @Composable
 fun ExpenseTrackerApp() {
     val navController = rememberNavController()
+    val receiptViewModel: ReceiptViewModel = hiltViewModel()
     val context = LocalContext.current
     val expenseDao = ExpenseDatabase.getDatabase(context).expenseDao()
     val categoryDao = ExpenseDatabase.getDatabase(context).categoryDao()
@@ -159,6 +162,9 @@ fun ExpenseTrackerApp() {
             }
             composable("category_list") {
                 CategoryListScreen(navController = navController, categoryDao = categoryDao)
+            }
+            composable("receipt_result") {
+                ReceiptResultScreen(navController = navController, viewModel = receiptViewModel)
             }
         }
     }
