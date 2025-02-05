@@ -99,6 +99,9 @@ dependencies {
     implementation(libs.text.recognition)
 
     implementation(libs.okhttp)
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.logging.interceptor)
 }
 
 // Allow references to generated code
