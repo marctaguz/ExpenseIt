@@ -13,10 +13,10 @@ class ReceiptApiClient {
     private val apiKey = "3ZSxFSVH8fs9hBqXCQ4c3SUwePuWG7IIc0K77p6t0nJqm9GyKGJFJQQJ99BAACmepeSXJ3w3AAALACOGlnd4"
     private val endpoint = "https://expenseit.cognitiveservices.azure.com"
     private val modelID = "prebuilt-receipt"
-    private val apiVersion = "2023-07-31"
-    private val documentUrl = "https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/receipt.png"
-
-    private val url = "$endpoint/formrecognizer/documentModels/$modelID:analyze?api-version=$apiVersion"
+    private val apiVersion = "2024-11-30"
+    private val documentUrl = "https://firebasestorage.googleapis.com/v0/b/expenseit-86eeb.firebasestorage.app/o/receipts%2FWhatsApp%20Image%202025-02-16%20at%203.09.42%E2%80%AFAM.jpeg?alt=media&token=e7cf18cf-d2e9-4c4b-95e7-1026f755ef70"
+//    private val url = "$endpoint/formrecognizer/documentModels/$modelID:analyze?api-version=$apiVersion"
+    private val url = "$endpoint/documentintelligence/documentModels/$modelID:analyze?api-version=$apiVersion"
 
     private val retrofit: Retrofit by lazy {
         val logging = HttpLoggingInterceptor().apply {
