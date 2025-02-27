@@ -36,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.expenseit.data.local.db.CategoryDao
@@ -58,6 +60,8 @@ import com.example.expenseit.data.local.db.ExpenseDao
 import com.example.expenseit.data.local.entities.Category
 import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.ui.components.PageHeader
+import com.example.expenseit.ui.viewmodels.CategoryViewModel
+import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,7 +71,16 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, categoryDao: CategoryDao, expenseId: String?) {
+fun ExpenseFormScreen(
+    navController: NavController,
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
+    expenseId: String?
+) {
+    val context = LocalContext.current
+    val expense by expenseViewModel.expense.collectAsState()
+    val categories by categoryViewModel.categories.collectAsState()
+
     var title by rememberSaveable { mutableStateOf("") }
     var amount by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf("") }
@@ -75,51 +88,26 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
     var date by rememberSaveable { mutableStateOf<Long?>(System.currentTimeMillis()) }
     var amountError by remember { mutableStateOf("") }
     var showModal by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    var expense by remember { mutableStateOf<Expense?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
-    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
-    // Date formatter
     val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val formattedDate = date?.let { dateFormatter.format(Date(it)) } ?: ""
 
-    // Fetch categories from CategoryDao
-    LaunchedEffect(Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val fetchedCategories = categoryDao.getAllCategories()
-            withContext(Dispatchers.Main) {
-                categories = fetchedCategories
-            }
-        }
-    }
-
-    // Fetch the expense details if an ID is provided
+    // Load expense data if editing
     LaunchedEffect(expenseId) {
         if (expenseId != null) {
-            isLoading = true
-            CoroutineScope(Dispatchers.IO).launch {
-                expense = expenseDao.getExpenseById(expenseId.toLong())
-                withContext(Dispatchers.Main) {
-                    expense?.let {
-                        // If editing, populate the fields with the existing data
-                        title = it.title
-                        amount = it.amount.toString()
-                        if (category.isBlank()) {
-                            category = it.category
-                        }
-                        description = it.description
-                        date = it.date
-                    }
-                    isLoading = false
-                }
-            }
+            expenseViewModel.loadExpenseById(expenseId.toLong())
         }
     }
 
-    if (isLoading) {
-        Text(text = "Loading...", fontSize = 16.sp)
+    LaunchedEffect(expense) {
+        expense?.let {
+            title = it.title
+            amount = it.amount.toString()
+            category = it.category
+            description = it.description
+            date = it.date
+        }
     }
 
     Scaffold(
@@ -254,14 +242,15 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 Button(
                     onClick = {
                         if (title.isNotEmpty() && amount.isNotEmpty() && category.isNotEmpty() && amountError.isEmpty()) {
+                            val parsedAmount = amount.toDoubleOrNull() ?: 0.0
                             if (expenseId != null) {
                                 // Update existing expense
-                                updateExpense(expenseDao, expenseId.toLong(), title, amount, category, description, date!!) {
+                                expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, category, description, date!!) {
                                     navController.popBackStack()
                                 }
                             } else {
                                 // Add new expense
-                                addExpense(expenseDao, title, amount, category, description, date!!) {
+                                expenseViewModel.addExpense(title, parsedAmount, category, description, date!!) {
                                     navController.popBackStack()
                                 }
                             }
@@ -290,7 +279,7 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 TextButton(onClick = {
                     // Perform the deletion
                     if (expenseId != null) {
-                        deleteExpense(expenseDao, expenseId.toLong()) {
+                        expenseViewModel.deleteExpense(expenseId.toLong()) {
                             navController.popBackStack() // Navigate back after deletion
                         }
                     }
@@ -305,71 +294,6 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 }
             }
         )
-    }
-}
-
-// Function to update an existing expense
-private fun updateExpense(
-    expenseDao: ExpenseDao,
-    expenseId: Long,
-    title: String,
-    amount: String,
-    category: String,
-    description: String,
-    date: Long,
-    onSuccess: () -> Unit
-) {
-    val expense = Expense(
-        id = expenseId,
-        title = title,
-        amount = amount.toDouble(),
-        category = category,
-        description = description,
-        date = date
-    )
-    CoroutineScope(Dispatchers.IO).launch {
-        expenseDao.update(expense)
-        withContext(Dispatchers.Main) {
-            onSuccess()
-        }
-    }
-}
-
-private fun addExpense(
-    expenseDao: ExpenseDao,
-    title: String,
-    amount: String,
-    category: String,
-    description: String,
-    date: Long,
-    onSuccess: () -> Unit
-) {
-    val expense = Expense(
-        title = title,
-        amount = amount.toDouble(),
-        category = category,
-        description = description,
-        date = date
-    )
-
-    CoroutineScope(Dispatchers.IO).launch {
-        expenseDao.insert(expense)
-        withContext(Dispatchers.Main) {
-            onSuccess() // Call onSuccess on the main thread
-        }
-    }
-}
-
-private fun deleteExpense(
-    expenseDao: ExpenseDao,
-    expenseId: Long,
-    onSuccess: () -> Unit
-) {
-    CoroutineScope(Dispatchers.IO).launch {
-        expenseDao.deleteExpenseById(expenseId)
-        withContext(Dispatchers.Main) {
-            onSuccess()
-        }
     }
 }
 

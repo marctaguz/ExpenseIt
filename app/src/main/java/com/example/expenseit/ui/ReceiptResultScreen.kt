@@ -19,31 +19,31 @@ import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import org.json.JSONObject
 
-@Composable
-fun ReceiptResultScreen(navController: NavController, viewModel: ReceiptViewModel) {
-    val receiptData = viewModel.receiptData ?: "{}"  // Default to empty JSON if null
-    val parsedData = remember { parseReceiptData(receiptData) }
-
-    Scaffold(
-        topBar = { PageHeader(title = "Receipt Details", actionButtonVisible = true) },
-        content = { innerPadding ->
-            Column(
-                modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(parsedData) { (key, value) ->
-                        Text(text = "$key: $value")
-                    }
-                }
-                Button(onClick = { navController.popBackStack() }) {
-                    Text(text = "Back")
-                }
-            }
-        }
-    )
-}
+//@Composable
+//fun ReceiptResultScreen(navController: NavController, viewModel: ReceiptViewModel) {
+//    val receiptData = viewModel.receiptData ?: "{}"  // Default to empty JSON if null
+//    val parsedData = remember { parseReceiptData(receiptData) }
+//
+//    Scaffold(
+//        topBar = { PageHeader(title = "Receipt Details", actionButtonVisible = true) },
+//        content = { innerPadding ->
+//            Column(
+//                modifier = Modifier.padding(innerPadding).fillMaxSize(),
+//                verticalArrangement = Arrangement.Center,
+//                horizontalAlignment = Alignment.CenterHorizontally
+//            ) {
+//                LazyColumn(modifier = Modifier.weight(1f)) {
+//                    items(parsedData) { (key, value) ->
+//                        Text(text = "$key: $value")
+//                    }
+//                }
+//                Button(onClick = { navController.popBackStack() }) {
+//                    Text(text = "Back")
+//                }
+//            }
+//        }
+//    )
+//}
 
 private fun parseReceiptData(receiptData: String): List<Pair<String, String>> {
     val jsonObject = JSONObject(receiptData)

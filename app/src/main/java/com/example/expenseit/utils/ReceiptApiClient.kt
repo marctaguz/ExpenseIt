@@ -14,7 +14,7 @@ class ReceiptApiClient {
     private val endpoint = "https://expenseit.cognitiveservices.azure.com"
     private val modelID = "prebuilt-receipt"
     private val apiVersion = "2024-11-30"
-    private val documentUrl = "https://firebasestorage.googleapis.com/v0/b/expenseit-86eeb.firebasestorage.app/o/receipts%2FWhatsApp%20Image%202025-02-16%20at%203.09.42%E2%80%AFAM.jpeg?alt=media&token=e7cf18cf-d2e9-4c4b-95e7-1026f755ef70"
+    //private val documentUrl = "https://firebasestorage.googleapis.com/v0/b/expenseit-86eeb.firebasestorage.app/o/receipts%2FWhatsApp%20Image%202025-02-16%20at%203.09.42%E2%80%AFAM.jpeg?alt=media&token=e7cf18cf-d2e9-4c4b-95e7-1026f755ef70"
 //    private val url = "$endpoint/formrecognizer/documentModels/$modelID:analyze?api-version=$apiVersion"
     private val url = "$endpoint/documentintelligence/documentModels/$modelID:analyze?api-version=$apiVersion"
 
@@ -38,7 +38,7 @@ class ReceiptApiClient {
         retrofit.create(ReceiptApiService::class.java)
     }
 
-    suspend fun uploadReceipt(): ScanResult? {
+    suspend fun uploadReceipt(documentUrl: String): ScanResult? {
         return withContext(Dispatchers.IO) {
             try {
                 // Create the request body

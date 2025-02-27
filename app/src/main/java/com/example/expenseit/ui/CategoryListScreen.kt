@@ -31,6 +31,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,7 @@ import androidx.navigation.NavController
 import com.example.expenseit.data.local.db.CategoryDao
 import com.example.expenseit.data.local.entities.Category
 import com.example.expenseit.ui.components.PageHeader
+import com.example.expenseit.ui.viewmodels.CategoryViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,35 +57,19 @@ import kotlinx.coroutines.withContext
 fun CategoryListScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    categoryDao: CategoryDao,
+    categoryViewModel: CategoryViewModel,
 ) {
-    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
+    val categories by categoryViewModel.categories.collectAsState()
     var isEditMode by remember { mutableStateOf(false) }
     var addingNewCategory by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
 
-    // Fetch categories from the database
-    LaunchedEffect(Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val fetchedCategories = categoryDao.getAllCategories()
-            withContext(Dispatchers.Main) {
-                categories = fetchedCategories
-            }
-        }
-    }
-
     val listState = rememberLazyListState()
     val dragDropState = rememberDragDropState(listState) { fromIndex, toIndex ->
-        categories = categories.toMutableList().apply {
+        val updatedCategories = categories.toMutableList().apply {
             add(toIndex, removeAt(fromIndex))
         }
-
-        // Save the new order to the database
-        CoroutineScope(Dispatchers.IO).launch {
-            categoryDao.updateOrder(categories.mapIndexed { index, category ->
-                category.copy(order = index)
-            })
-        }
+        categoryViewModel.updateCategoryOrder(updatedCategories)
     }
 
     Scaffold(
@@ -133,16 +119,10 @@ fun CategoryListScreen(
                                     isDragging = isDragging,
                                     dragDropState = dragDropState, // Pass the dragDropState
                                     onRename = { newName ->
-                                        CoroutineScope(Dispatchers.IO).launch {
-                                            categoryDao.update(category.copy(name = newName))
-                                            categories = categoryDao.getAllCategories()
-                                        }
+                                        categoryViewModel.updateCategory(category, newName)
                                     },
                                     onDelete = {
-                                        CoroutineScope(Dispatchers.IO).launch {
-                                            categoryDao.delete(category)
-                                            categories = categoryDao.getAllCategories()
-                                        }
+                                        categoryViewModel.deleteCategory(category)
                                     }
                                 )
                             }
@@ -188,10 +168,8 @@ fun CategoryListScreen(
                                 colors = TextFieldDefaults.colors(
                                     //setting the text field background when it is focused
                                     focusedContainerColor = Color.Transparent,
-
                                     //setting the text field background when it is unfocused or initial state
                                     unfocusedContainerColor = Color.Transparent,
-
                                     //setting the text field background when it is disabled
                                     disabledContainerColor = Color.Transparent,
                                 ),
@@ -199,13 +177,7 @@ fun CategoryListScreen(
                             IconButton(
                                 onClick = {
                                     if (newCategoryName.isNotBlank()) {
-                                        CoroutineScope(Dispatchers.IO).launch {
-                                            val newCategory = Category(
-                                                name = newCategoryName.trim(),
-                                                order = categories.size
-                                            )
-                                            categoryDao.insert(newCategory)
-                                            categories = categoryDao.getAllCategories()
+                                        categoryViewModel.addCategory(newCategoryName) {
                                             newCategoryName = ""
                                             addingNewCategory = false
                                         }
@@ -301,10 +273,8 @@ fun EditModeCategoryItem(
                 colors = TextFieldDefaults.colors(
                     //setting the text field background when it is focused
                     focusedContainerColor = Color.Transparent,
-
                     //setting the text field background when it is unfocused or initial state
                     unfocusedContainerColor = Color.Transparent,
-
                     //setting the text field background when it is disabled
                     disabledContainerColor = Color.Transparent,
                 ),

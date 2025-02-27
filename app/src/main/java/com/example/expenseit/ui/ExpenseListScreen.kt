@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,11 +34,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.expenseit.R
 import com.example.expenseit.data.local.db.ExpenseDao
 import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.ui.components.ExpenseItem
+import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,21 +50,8 @@ import java.util.Locale
 import kotlin.math.exp
 
 @Composable
-fun ExpenseListScreen(navController: NavController, expenseDao: ExpenseDao, modifier: Modifier) {
-    var expenses by remember { mutableStateOf(listOf<Expense>()) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    // Fetch expenses from the database
-    LaunchedEffect(Unit) {
-        isLoading = true
-        CoroutineScope(Dispatchers.IO).launch {
-            val fetchedExpenses = expenseDao.getAllExpenses()
-            withContext(Dispatchers.Main) {
-                expenses = fetchedExpenses
-                isLoading = false
-            }
-        }
-    }
+fun ExpenseListScreen(navController: NavController, expenseViewModel: ExpenseViewModel = hiltViewModel(), modifier: Modifier) {
+    val expenses by expenseViewModel.expenses.collectAsState()
 
     Scaffold(
         modifier = modifier
@@ -80,9 +70,7 @@ fun ExpenseListScreen(navController: NavController, expenseDao: ExpenseDao, modi
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (isLoading) {
-                Text(text = "Loading...", fontSize = 16.sp)
-            } else if (expenses.isEmpty()) {
+            if (expenses.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

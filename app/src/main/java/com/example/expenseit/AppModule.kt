@@ -1,18 +1,60 @@
 package com.example.expenseit
 
 import android.content.Context
+import androidx.room.Room
+import com.example.expenseit.data.local.db.CategoryDao
+import com.example.expenseit.data.local.db.ExpenseDao
+import com.example.expenseit.data.local.db.ExpenseDatabase
+import com.example.expenseit.data.local.db.MIGRATION_3_5
+import com.example.expenseit.data.local.db.MIGRATION_5_6
+import com.example.expenseit.data.local.db.MIGRATION_6_7
+import com.example.expenseit.data.local.db.ReceiptDao
+import com.example.expenseit.data.repository.CategoryRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
-@InstallIn(SingletonComponent::class) // This makes the module available in the Singleton scope
+@InstallIn(SingletonComponent::class) // Singleton scope
 object AppModule {
 
-    // Provide the Context to Hilt
+    // ✅ Provide Application Context
     @Provides
     fun provideContext(application: android.app.Application): Context {
         return application.applicationContext
+    }
+
+    // ✅ Provide Database Instance
+    @Provides
+    @Singleton
+    fun provideDatabase(context: Context): ExpenseDatabase {
+        return Room.databaseBuilder(
+            context.applicationContext,
+            ExpenseDatabase::class.java,
+            "expense_database"
+        ).addMigrations(MIGRATION_3_5, MIGRATION_5_6, MIGRATION_6_7)
+            .build()
+    }
+
+    @Provides
+    fun provideExpenseDao(database: ExpenseDatabase): ExpenseDao {
+        return database.expenseDao()
+    }
+
+    @Provides
+    fun provideCategoryDao(database: ExpenseDatabase): CategoryDao {
+        return database.categoryDao()
+    }
+
+    @Provides
+    fun provideReceiptDao(database: ExpenseDatabase): ReceiptDao {
+        return database.receiptDao()
+    }
+
+    @Provides
+    fun provideCategoryRepository(categoryDao: CategoryDao): CategoryRepository {
+        return CategoryRepository(categoryDao)
     }
 }
