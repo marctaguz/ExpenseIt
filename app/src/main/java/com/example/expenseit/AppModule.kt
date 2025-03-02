@@ -8,6 +8,7 @@ import com.example.expenseit.data.local.db.ExpenseDatabase
 import com.example.expenseit.data.local.db.MIGRATION_3_5
 import com.example.expenseit.data.local.db.MIGRATION_5_6
 import com.example.expenseit.data.local.db.MIGRATION_6_7
+import com.example.expenseit.data.local.db.MIGRATION_7_8
 import com.example.expenseit.data.local.db.ReceiptDao
 import com.example.expenseit.data.repository.CategoryRepository
 import dagger.Module
@@ -34,7 +35,8 @@ object AppModule {
             context.applicationContext,
             ExpenseDatabase::class.java,
             "expense_database"
-        ).addMigrations(MIGRATION_3_5, MIGRATION_5_6, MIGRATION_6_7)
+        ).addMigrations()
+            .fallbackToDestructiveMigration() // ⚠️ Resets database if schema changes
             .build()
     }
 

@@ -1,6 +1,7 @@
 package com.example.expenseit.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,18 +18,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,8 +42,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
+import com.example.expenseit.ui.components.CustomDateField
 import com.example.expenseit.ui.components.CustomTextField
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.components.ReceiptItemCard
@@ -54,7 +59,14 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
     var currentlyEditingItemId by remember { mutableStateOf<Int?>(null) } // Track currently edited item
 
     var editedMerchantName by remember { mutableStateOf("") }
-    var editedTransactionDate by remember { mutableStateOf("") }
+    var editedTransactionDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    // Store initial state for comparison
+    var initialReceipt by remember { mutableStateOf<Receipt?>(null) }
+    var initialItems by remember { mutableStateOf<List<ReceiptItem>>(emptyList()) }
+
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var showImagePreview by remember { mutableStateOf(false) }
 
 
     LaunchedEffect(receiptId) {
@@ -62,26 +74,39 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             receipt = fetchedReceipt
             editedItems = fetchedItems.toMutableList()  // Create a copy for UI editing
             editedMerchantName = fetchedReceipt?.merchantName ?: ""
-            editedTransactionDate = fetchedReceipt?.transactionDate ?: ""
+            editedTransactionDate = fetchedReceipt?.date ?: System.currentTimeMillis()
+            // Save the initial state for later comparison
+            initialReceipt = fetchedReceipt?.copy()
+            initialItems = fetchedItems.map { it.copy() }
         }
     }
 
+    fun hasChanges(): Boolean {
+        return receipt?.merchantName != editedMerchantName ||
+                receipt?.date != editedTransactionDate ||
+                editedItems != initialItems
+    }
+
     Scaffold(
-        containerColor = Color(0xFFF9FAFB),
         topBar = {
             Box(modifier = Modifier.fillMaxWidth()
             ) {
                 PageHeader(
                     title = "Receipt Details",
                     actionButtonVisible = true,
-                    onClose = { navController.popBackStack() }
-                )
+                    onClose = {
+                        if (hasChanges()) {
+                            showConfirmDialog = true
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }                )
                 Button(
                     onClick = {
                         receipt?.let {
                             val updatedReceipt = it.copy(
                                 merchantName = editedMerchantName,
-                                transactionDate = editedTransactionDate
+                                date = editedTransactionDate
                             )
                             receiptViewModel.updateReceipt(updatedReceipt)
                         }
@@ -107,6 +132,40 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 receipt?.let { rec ->
+
+                    //Receipt Image section
+                    Card(
+                        modifier = Modifier
+                            .padding(bottom = 10.dp),
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        colors = CardDefaults.cardColors(Color.White),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            if (rec.imageUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = rec.imageUrl,
+                                    contentDescription = "Receipt Image",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .size(150.dp)
+                                        .clickable { showImagePreview = true },
+                                    alignment = Alignment.Center
+                                )
+                            } else {
+                                Text(
+                                    text = "No receipt image available",
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+                    //Merchant and Date section
                     Card(modifier = Modifier
                         .fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(1.dp),
@@ -129,9 +188,9 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                                 .weight(0.5f)
                                 .padding(horizontal = 10.dp)
                             ) {
-                                CustomTextField(
-                                    value = editedTransactionDate,
-                                    onValueChange = { editedTransactionDate = it },
+                                CustomDateField(
+                                    date = editedTransactionDate,
+                                    onDateSelected = { editedTransactionDate = it },
                                     label = "Date"
                                 )
 
@@ -139,6 +198,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                         }
                     }
 
+                    //Items list section
                     Card(
                         modifier = Modifier
                             .padding(top = 10.dp, bottom = 130.dp),
@@ -220,5 +280,34 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             }
         }
     )
+
+    // ✅ Full Screen Image Preview Dialog
+    if (showImagePreview) {
+        AlertDialog(
+            containerColor = Color.Transparent,
+            onDismissRequest = { showImagePreview = false },
+            confirmButton = {},
+            dismissButton = {},
+            text = {
+                AsyncImage(
+                    model = receipt?.imageUrl,
+                    contentDescription = "Full Screen Receipt",
+                    modifier = Modifier.fillMaxSize(),
+                    alignment = Alignment.Center
+                )
+            }
+        )
+    }
+
+    // Confirmation Dialog
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Discard changes?") },
+            text = { Text("You have unsaved changes. Are you sure you want to leave without saving?") },
+            confirmButton = { TextButton(onClick = { showConfirmDialog = false; navController.popBackStack() }) { Text("Discard") } },
+            dismissButton = { TextButton(onClick = { showConfirmDialog = false }) { Text("Cancel") } }
+        )
+    }
 }
 

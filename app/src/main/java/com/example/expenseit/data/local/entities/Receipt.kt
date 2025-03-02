@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class Receipt(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val merchantName: String,
-    val transactionDate: String,
+    val date: Long,
     val totalPrice: Double,
     val imageUrl: String
 )

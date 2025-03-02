@@ -1,5 +1,6 @@
 package com.example.expenseit.ui
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.example.expenseit.ui.components.CustomDateField
+import com.example.expenseit.ui.components.DatePickerModal
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import java.text.SimpleDateFormat
@@ -66,15 +70,10 @@ fun ExpenseFormScreen(
     var amount by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
-    var date by rememberSaveable { mutableStateOf<Long?>(System.currentTimeMillis()) }
+    var date by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var amountError by remember { mutableStateOf("") }
-    var showModal by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
 
-    val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    val formattedDate = date?.let { dateFormatter.format(Date(it)) } ?: ""
-
-    // Load expense data if editing
     LaunchedEffect(expenseId) {
         if (expenseId != null) {
             expenseViewModel.loadExpenseById(expenseId.toLong())
@@ -83,11 +82,13 @@ fun ExpenseFormScreen(
 
     LaunchedEffect(expense) {
         expense?.let {
-            title = it.title
-            amount = it.amount.toString()
-            category = it.category
-            description = it.description
-            date = it.date
+            if (expenseId != null) { // Ensure this only runs when editing
+                title = it.title
+                amount = it.amount.toString()
+                category = it.category
+                description = it.description
+                date = it.date
+            }
         }
     }
 
@@ -151,7 +152,7 @@ fun ExpenseFormScreen(
 
                 val focusRequester = FocusRequester()
                 val interactionSource = remember { MutableInteractionSource() }
-                Box() {
+                Box {
                     // OutlinedTextField for displaying the selected category
                     OutlinedTextField(
                         value = category,
@@ -164,7 +165,7 @@ fun ExpenseFormScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color.Transparent) // Ensure the background is transparent so the clickable Box is visible
-                            .focusRequester(focusRequester = focusRequester)
+                            .focusRequester(focusRequester)
                     )
 
                     Box(modifier = Modifier
@@ -172,7 +173,6 @@ fun ExpenseFormScreen(
                         .clickable(
                             onClick = {
                                 navController.navigate("category_list")
-//                                showCategoryDialog = true
                                 focusRequester.requestFocus()
                             },
                             interactionSource = interactionSource,
@@ -193,29 +193,12 @@ fun ExpenseFormScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Date field
-                OutlinedTextField(
-                    value = formattedDate,
-                    onValueChange = { },
-                    label = { Text("Date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showModal = true }) {
-                            Icon(imageVector = Icons.Default.DateRange, contentDescription = "Select Date")
-                        }
-                    },
+                CustomDateField(
+                    label = "Transaction Date",
+                    date = date,
+                    onDateSelected = { date = it },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                // Show the modal date picker
-                if (showModal) {
-                    DatePickerModal(
-                        onDateSelected = { selectedDate ->
-                            date = selectedDate
-                            showModal = false
-                        },
-                        onDismiss = { showModal = false }
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -245,10 +228,11 @@ fun ExpenseFormScreen(
                 }
             }
             // Observe NavBackStackEntry to get the selected category
-            navController.currentBackStackEntry?.savedStateHandle?.getLiveData<String>("selectedCategory")
-                ?.observe(LocalLifecycleOwner.current) { selectedCategory ->
-                    category = selectedCategory
+            LaunchedEffect(navController.currentBackStackEntry) {
+                navController.currentBackStackEntry?.savedStateHandle?.get<String>("selectedCategory")?.let {
+                    category = it
                 }
+            }
         }
     )
     if (showDeleteConfirmationDialog) {
@@ -275,33 +259,5 @@ fun ExpenseFormScreen(
                 }
             }
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatePickerModal(
-    onDateSelected: (Long?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val datePickerState = rememberDatePickerState()
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onDateSelected(datePickerState.selectedDateMillis)
-                onDismiss()
-            }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    ) {
-        DatePicker(state = datePickerState)
     }
 }

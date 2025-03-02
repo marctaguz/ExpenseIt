@@ -11,7 +11,7 @@ import com.example.expenseit.data.local.entities.ReceiptItem
 
 @Database(
     entities = [Expense::class, Category::class, Receipt::class, ReceiptItem::class],
-    version = 7,
+    version = 1,
     exportSchema = false
 )
 abstract class ExpenseDatabase : RoomDatabase() {
@@ -82,3 +82,42 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Step 1: Add new column 'date' with a default value (e.g., Unix timestamp 0)
+        db.execSQL("ALTER TABLE receipts ADD COLUMN date INTEGER NOT NULL DEFAULT 0")
+
+        // Step 2: Convert 'transactionDate' (TEXT) to 'date' (INTEGER)
+        db.execSQL("""
+            UPDATE receipts 
+            SET date = CASE 
+                WHEN transactionDate IS NOT NULL AND transactionDate != '' 
+                THEN strftime('%s', transactionDate) * 1000 
+                ELSE 0 
+            END
+        """)
+
+        // Step 3: Remove old column (SQLite doesn't support DROP COLUMN directly)
+        db.execSQL("""
+            CREATE TABLE receipts_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                merchantName TEXT NOT NULL,
+                date INTEGER NOT NULL,
+                totalPrice REAL NOT NULL,
+                imageUrl TEXT NOT NULL
+            )
+        """)
+
+        // Step 4: Copy existing data to the new table
+        db.execSQL("""
+            INSERT INTO receipts_new (id, merchantName, date, totalPrice, imageUrl)
+            SELECT id, merchantName, date, totalPrice, imageUrl FROM receipts
+        """)
+
+        // Step 5: Drop old table
+        db.execSQL("DROP TABLE receipts")
+
+        // Step 6: Rename new table to original name
+        db.execSQL("ALTER TABLE receipts_new RENAME TO receipts")
+    }
+}

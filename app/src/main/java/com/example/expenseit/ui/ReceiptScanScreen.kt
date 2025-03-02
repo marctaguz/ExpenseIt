@@ -8,27 +8,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -49,11 +41,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.expenseit.data.local.db.ReceiptDao
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
+import com.example.expenseit.utils.DateUtils
 import com.example.expenseit.utils.ReceiptApiClient
 import com.example.expenseit.utils.ScanResult
 import com.google.firebase.Firebase
@@ -143,7 +135,9 @@ fun ReceiptScanScreen(navController: NavController,
                             receiptData?.let { data ->
                                 //Extract main receipt details
                                 val merchantName = data.analyzeResult?.documents?.firstOrNull()?.fields?.MerchantName?.valueString ?: "Unknown Merchant"
-                                val transactionDate = data.analyzeResult?.documents?.firstOrNull()?.fields?.TransactionDate?.valueDate ?: "0/0/0000"
+                                val transactionDate = data.analyzeResult?.documents?.firstOrNull()?.fields?.TransactionDate?.valueDate?.let {
+                                    DateUtils.dateStringToLong(it) // Convert to Long
+                                } ?: System.currentTimeMillis() // Default to current date if null
                                 val total = data.analyzeResult?.documents?.firstOrNull()?.fields?.Total?.valueCurrency?.amount ?: 0.0
 
                                 //Extract individual item details
@@ -157,7 +151,7 @@ fun ReceiptScanScreen(navController: NavController,
 
                                 val newReceipt = Receipt(
                                     merchantName = merchantName,
-                                    transactionDate = transactionDate,
+                                    date = transactionDate,
                                     totalPrice = total,
                                     imageUrl = downloadUrl
                                 )
@@ -166,7 +160,6 @@ fun ReceiptScanScreen(navController: NavController,
                                 Log.d("ReceiptScanScreen", "New receipt: $items")
                                 receiptViewModel.insertReceipt(newReceipt, items)
 
-                                navController.navigate("receipt_details/${newReceipt.id}")
 
                             }
                         } else {
@@ -223,7 +216,6 @@ fun ReceiptScanScreen(navController: NavController,
 fun ReceiptCard(receipt: Receipt, navController: NavController) {
     Card(
         modifier = Modifier
-//            .weight(1f)
             .padding(8.dp)
             .clickable { navController.navigate("receipt_details/${receipt.id}") },
         elevation = CardDefaults.cardElevation(4.dp)

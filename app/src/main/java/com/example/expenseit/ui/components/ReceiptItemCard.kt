@@ -135,7 +135,7 @@ fun ReceiptItemCard(
 
                 Text(
                     text = "$${String.format("%.2f", item.quantity * item.price)}",
-                    modifier = Modifier.width(50.dp),
+                    modifier = Modifier.width(56.dp),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
