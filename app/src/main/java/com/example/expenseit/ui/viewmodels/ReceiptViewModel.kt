@@ -9,6 +9,7 @@ import com.example.expenseit.data.local.db.ReceiptDao
 import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,9 +55,26 @@ class ReceiptViewModel @Inject constructor(
         }
     }
 
-    fun updateReceiptItem(item: ReceiptItem) {
+    fun updateReceiptItems(items: List<ReceiptItem>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            items.forEach { item ->
+                receiptDao.updateReceiptItem(item)
+            }
+        }
+    }
+
+    fun updateReceiptItem(item: ReceiptItem, onSuccess: () -> Unit) {
         viewModelScope.launch {
             receiptDao.updateReceiptItem(item)
+            onSuccess()
+        }
+    }
+
+    fun deleteReceipt(receiptId: Int, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            receiptDao.deleteReceiptById(receiptId)
+            loadAllReceipts()
+            onSuccess()
         }
     }
 }

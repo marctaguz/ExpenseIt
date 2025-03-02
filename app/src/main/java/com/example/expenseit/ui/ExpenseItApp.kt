@@ -163,11 +163,11 @@ fun ExpenseItApp(
                 SettingsScreen(navController = navController, modifier = contentModifier)
             }
             composable("add_expense") {
-                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, categoryViewModel = categoryViewModel, expenseId = null)
+                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = null)
             }
             composable("add_expense/{expenseId}") { backStackEntry ->
                 val expenseId = backStackEntry.arguments?.getString("expenseId")
-                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, categoryViewModel = categoryViewModel, expenseId = expenseId)
+                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = expenseId)
             }
             composable("category_list") {
                 CategoryListScreen(navController = navController, categoryViewModel = categoryViewModel)
