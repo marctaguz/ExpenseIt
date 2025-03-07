@@ -27,7 +27,7 @@ class ReceiptViewModel @Inject constructor(
         loadAllReceipts()  // Load all receipts on startup
     }
 
-    private fun loadAllReceipts() {
+    fun loadAllReceipts() {
         viewModelScope.launch {
             val allReceipts = receiptDao.getAllReceipts()
             _receipts.value = allReceipts

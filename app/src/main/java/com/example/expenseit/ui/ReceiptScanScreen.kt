@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileOutputStream
+import java.math.BigDecimal
 import java.util.UUID
 import kotlin.coroutines.resume
 
@@ -69,7 +70,6 @@ fun ReceiptScanScreen(navController: NavController,
                       receiptViewModel: ReceiptViewModel = hiltViewModel(),
                       modifier: Modifier) {
 
-    val receipts by receiptViewModel.receipts.collectAsState()  // Observing list of receipts
     val options = remember {
         GmsDocumentScannerOptions.Builder()
             .setScannerMode(SCANNER_MODE_FULL)
@@ -79,6 +79,7 @@ fun ReceiptScanScreen(navController: NavController,
             .build()
     }
 
+    val receipts by receiptViewModel.receipts.collectAsState()  // Observing list of receipts
     val activity = LocalContext.current as MainActivity
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -138,15 +139,15 @@ fun ReceiptScanScreen(navController: NavController,
                                 val transactionDate = data.analyzeResult?.documents?.firstOrNull()?.fields?.TransactionDate?.valueDate?.let {
                                     DateUtils.dateStringToLong(it) // Convert to Long
                                 } ?: System.currentTimeMillis() // Default to current date if null
-                                val total = data.analyzeResult?.documents?.firstOrNull()?.fields?.Total?.valueCurrency?.amount ?: 0.0
-
+                                val total = data.analyzeResult?.documents?.firstOrNull()?.fields?.Total?.valueCurrency?.amount
+                                    ?.toBigDecimal()?.setScale(2, BigDecimal.ROUND_HALF_UP) ?: BigDecimal("0.00")
                                 //Extract individual item details
                                 val items = data.analyzeResult?.documents?.firstOrNull()?.fields?.Items?.valueArray?.mapNotNull { item ->
                                     val itemFields = item.valueObject ?: return@mapNotNull null
                                     val itemName = itemFields["Description"]?.valueString ?: "Unknown Item"
                                     val quantity = itemFields["Quantity"]?.valueNumber ?: 1
-                                    val price = itemFields["TotalPrice"]?.valueCurrency?.amount ?: 0.0
-                                    ReceiptItem(receiptId = 0, itemName = itemName, quantity = quantity, price = price) // receiptId will be updated later
+                                    val price = itemFields["TotalPrice"]?.valueCurrency?.amount ?.toBigDecimal()?.setScale(2, BigDecimal.ROUND_HALF_UP) ?: BigDecimal("0.00")
+                                    ReceiptItem(receiptId = 0, itemName = itemName, quantity = quantity, price = price)
                                 } ?: emptyList()
 
                                 val newReceipt = Receipt(
@@ -199,15 +200,17 @@ fun ReceiptScanScreen(navController: NavController,
                     .padding(innerPadding)
                     .fillMaxSize()
             ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    items(receipts) { receipt ->
-                        ReceiptCard(receipt = receipt, navController = navController)
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        items(receipts) { receipt ->
+                            ReceiptCard(receipt = receipt, navController = navController)
+                        }
                     }
                 }
-            }
+
+
         }
     )
 }

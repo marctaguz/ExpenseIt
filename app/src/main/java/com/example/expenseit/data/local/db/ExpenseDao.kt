@@ -4,12 +4,14 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Delete
+import androidx.room.OnConflictStrategy
 import androidx.room.Update
 import com.example.expenseit.data.local.entities.Expense
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ExpenseDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(expense: Expense)
 
     @Update
@@ -22,7 +24,7 @@ interface ExpenseDao {
     suspend fun deleteExpenseById(expenseId: Long)
 
     @Query("SELECT * FROM expenses ORDER BY date DESC")
-    suspend fun getAllExpenses(): List<Expense>
+    fun getAllExpenses(): Flow<List<Expense>>
 
     @Query("SELECT * FROM expenses WHERE id = :expenseId LIMIT 1")
     suspend fun getExpenseById(expenseId: Long): Expense?

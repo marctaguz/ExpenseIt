@@ -206,7 +206,7 @@ fun ExpenseFormScreen(
                 Button(
                     onClick = {
                         if (title.isNotEmpty() && amount.isNotEmpty() && category.isNotEmpty() && amountError.isEmpty()) {
-                            val parsedAmount = amount.toDoubleOrNull() ?: 0.0
+                            val parsedAmount = amount.toBigDecimal()
                             if (expenseId != null) {
                                 // Update existing expense
                                 expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, category, description, date!!) {

@@ -2,18 +2,21 @@ package com.example.expenseit.data.local.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.expenseit.data.local.entities.Category
 import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
+import com.example.expenseit.utils.BigDecimalConverter
 
 @Database(
     entities = [Expense::class, Category::class, Receipt::class, ReceiptItem::class],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
+@TypeConverters(BigDecimalConverter::class)
 abstract class ExpenseDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
     abstract fun categoryDao(): CategoryDao
@@ -119,5 +122,19 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
 
         // Step 6: Rename new table to original name
         db.execSQL("ALTER TABLE receipts_new RENAME TO receipts")
+    }
+}
+
+
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // ✅ Add new column "receiptId" (nullable by default)
+        db.execSQL("ALTER TABLE expenses ADD COLUMN receiptId INTEGER NULL")
+    }
+}
+
+val MIGRATION_2_3 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE receipt_item ADD COLUMN price TEXT DEFAULT '0.00'")
     }
 }

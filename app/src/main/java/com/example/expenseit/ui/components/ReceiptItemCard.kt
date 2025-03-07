@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.expenseit.data.local.entities.ReceiptItem
+import java.math.BigDecimal
 
 @Composable
 fun ReceiptItemCard(
@@ -67,20 +67,22 @@ fun ReceiptItemCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    OutlinedTextField(
+                    CustomNumberField(
                         value = editedQuantity,
                         onValueChange = { editedQuantity = it },
-                        label = { Text("Quantity") },
-                        modifier = Modifier.weight(1f)
+                        label = "Quantity",
+                        modifier = Modifier.weight(1f),
+                        isDecimal = false
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    OutlinedTextField(
+                    CustomNumberField(
                         value = editedPrice,
                         onValueChange = { editedPrice = it },
-                        label = { Text("Price") },
-                        modifier = Modifier.weight(1f)
+                        label = "Price",
+                        modifier = Modifier.weight(1f),
+                        isDecimal = true
                     )
                 }
 
@@ -96,7 +98,7 @@ fun ReceiptItemCard(
                             val updatedItem = item.copy(
                                 itemName = editedItemName,
                                 quantity = editedQuantity.toIntOrNull() ?: item.quantity,
-                                price = editedPrice.toDoubleOrNull() ?: item.price
+                                price = editedPrice.toBigDecimalOrNull()?.setScale(2, BigDecimal.ROUND_HALF_UP) ?: item.price
                             )
                             onDoneEditing(updatedItem) // Pass updated item back
                         }
@@ -134,8 +136,8 @@ fun ReceiptItemCard(
                 }
 
                 Text(
-                    text = "$${String.format("%.2f", item.quantity * item.price)}",
-                    modifier = Modifier.width(56.dp),
+                    text = "$${String.format("%.2f", item.quantity * item.price.toDouble())}",
+                    modifier = Modifier.width(60.dp),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )

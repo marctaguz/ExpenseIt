@@ -106,6 +106,9 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.storage)
+
+    implementation(libs.accompanist.swiperefresh)
+    implementation(libs.vico.compose.m3)
 }
 
 // Allow references to generated code

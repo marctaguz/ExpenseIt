@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,15 +43,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.components.CustomDateField
 import com.example.expenseit.ui.components.CustomTextField
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.components.ReceiptItemCard
+import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
+import com.example.expenseit.ui.viewmodels.SettingsViewModel
+import java.math.BigDecimal
 
 @Composable
 fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
@@ -68,6 +75,14 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showImagePreview by remember { mutableStateOf(false) }
 
+    val totalPrice = editedItems
+        .sumOf { it.price * it.quantity.toBigDecimal() }
+        .setScale(2, BigDecimal.ROUND_HALF_UP)
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val expenseViewModel: ExpenseViewModel = hiltViewModel()
+    val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
+
+    var showExpenseDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(receiptId) {
         receiptViewModel.getReceiptById(receiptId) { fetchedReceipt, fetchedItems ->
@@ -106,19 +121,61 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                         receipt?.let {
                             val updatedReceipt = it.copy(
                                 merchantName = editedMerchantName,
-                                date = editedTransactionDate
+                                date = editedTransactionDate,
+                                totalPrice = totalPrice
                             )
                             receiptViewModel.updateReceipt(updatedReceipt)
                         }
                         receiptViewModel.updateReceiptItems(editedItems)
                         navController.popBackStack()
                     },
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp),
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp),
                     border = BorderStroke(1.dp, Color.White)
                 ) {
                     Icon(imageVector = Icons.Default.Done, contentDescription = "Save")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(text = "Save")
+                }
+            }
+        },
+        bottomBar = {
+            receipt?.let { rec ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(
+                            text = "Total: ",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(text = currency + " %.2f".format(totalPrice),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold)
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Button(
+                            onClick = { /* Rescan functionality (to be implemented later) */ },
+                            modifier = Modifier.padding(start = 0.dp)
+                        ) {
+                            Text("Rescan")
+                        }
+                        Button(
+                            onClick = { showExpenseDialog = true }
+                        ) {
+                            Text("Create Expense")
+                        }
+                    }
                 }
             }
         },
@@ -201,7 +258,8 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                     //Items list section
                     Card(
                         modifier = Modifier
-                            .padding(top = 10.dp, bottom = 130.dp),
+                            .padding(top = 10.dp, bottom = 30.dp)
+                            .weight(1f),
                         elevation = CardDefaults.cardElevation(1.dp),
                         colors = CardDefaults.cardColors(Color.White),
                     ) {
@@ -228,7 +286,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                                                 receiptId = receiptId,
                                                 itemName = "New Item",
                                                 quantity = 1,
-                                                price = 0.0
+                                                price = BigDecimal("0.00")
                                             )
                                             editedItems = editedItems + newItem  // Add to local list
 
@@ -276,6 +334,8 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                             }
                         }
                     }
+
+
                 }
             }
         }
@@ -307,6 +367,42 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             text = { Text("You have unsaved changes. Are you sure you want to leave without saving?") },
             confirmButton = { TextButton(onClick = { showConfirmDialog = false; navController.popBackStack() }) { Text("Discard") } },
             dismissButton = { TextButton(onClick = { showConfirmDialog = false }) { Text("Cancel") } }
+        )
+    }
+
+    // Show expense creation dialog
+    if (showExpenseDialog) {
+        AlertDialog(
+            onDismissRequest = { showExpenseDialog = false },
+            title = { Text("Create Expense") },
+            text = { Text("Would you like to create an expense using the total price or select items?") },
+            confirmButton = {
+                Button(onClick = {
+                    receipt?.let { rec ->
+                        expenseViewModel.addExpense(
+                                title = rec.merchantName,
+                                amount = rec.totalPrice,
+                                category = "Uncategorized",
+                                description = "Created from receipt",
+                                date = rec.date,
+                                receiptId = rec.id,
+                                onSuccess = { navController.popBackStack() }
+                        )
+                        showExpenseDialog = false
+                        navController.popBackStack()
+                    }
+                }) {
+                    Text("Use Total Price")
+                }
+            },
+            dismissButton = {
+                Button(onClick = {
+                    showExpenseDialog = false
+                    navController.navigate("select_expense_items/$receiptId")
+                }) {
+                    Text("Select Items")
+                }
+            }
         )
     }
 }

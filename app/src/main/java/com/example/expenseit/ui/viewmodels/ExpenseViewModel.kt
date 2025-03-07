@@ -6,10 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.expenseit.data.local.db.ExpenseDao
 import com.example.expenseit.data.local.entities.Expense
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,13 +27,14 @@ class ExpenseViewModel @Inject constructor(
     val expense: StateFlow<Expense?> = _expense.asStateFlow()
 
     init {
-        loadAllExpenses()  // Load all expenses on startup
+        observeExpenses()
     }
 
-    private fun loadAllExpenses() {
+    private fun observeExpenses() {
         viewModelScope.launch {
-            val allExpenses = expenseDao.getAllExpenses()
-            _expenses.value = allExpenses
+            expenseDao.getAllExpenses().collect { allExpenses ->
+                _expenses.value = allExpenses
+            }
         }
     }
 
@@ -40,22 +44,32 @@ class ExpenseViewModel @Inject constructor(
         }
     }
 
-    fun addExpense(title: String, amount: Double, category: String, description: String, date: Long, onSuccess: () -> Unit) {
+    fun addExpense(
+        title: String,
+        amount: BigDecimal,
+        category: String,
+        description: String,
+        date: Long,
+        receiptId: Int? = null,
+        onSuccess: () -> Unit,
+    ) {
+
         val newExpense = Expense(
             title = title,
             amount = amount,
             category = category,
             description = description,
-            date = date
+            date = date,
+            receiptId = receiptId
         )
         viewModelScope.launch {
             expenseDao.insert(newExpense)
-            loadAllExpenses()
+            observeExpenses()
             onSuccess()
         }
     }
 
-    fun updateExpense(expenseId: Long, title: String, amount: Double, category: String, description: String, date: Long, onSuccess: () -> Unit) {
+    fun updateExpense(expenseId: Long, title: String, amount: BigDecimal, category: String, description: String, date: Long, onSuccess: () -> Unit) {
         val updatedExpense = Expense(
             id = expenseId,
             title = title,
@@ -66,7 +80,7 @@ class ExpenseViewModel @Inject constructor(
         )
         viewModelScope.launch {
             expenseDao.update(updatedExpense)
-            loadAllExpenses()
+            observeExpenses()
             onSuccess()
         }
     }
@@ -74,9 +88,26 @@ class ExpenseViewModel @Inject constructor(
     fun deleteExpense(expenseId: Long, onSuccess: () -> Unit) {
         viewModelScope.launch {
             expenseDao.deleteExpenseById(expenseId)
-            loadAllExpenses()
+            observeExpenses()
             onSuccess()
         }
     }
+
+    fun getExpensesByCategory(): Flow<Map<String, BigDecimal>> {
+        return expenseDao.getAllExpenses()
+            .map { expenses ->
+                expenses.groupBy { it.category }
+                    .mapValues { (_, items) -> items.sumOf { it.amount } }
+            }
+    }
+
+    fun getExpensesByDate(): Flow<Map<Long, BigDecimal>> {
+        return expenseDao.getAllExpenses()
+            .map { expenses ->
+                expenses.groupBy { it.date }
+                    .mapValues { (_, items) -> items.sumOf { it.amount } }
+            }
+    }
+
 }
 

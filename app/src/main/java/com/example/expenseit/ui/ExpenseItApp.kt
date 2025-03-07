@@ -37,9 +37,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.expenseit.R
-import com.example.expenseit.data.local.db.CategoryDao
-import com.example.expenseit.data.local.db.ExpenseDao
-import com.example.expenseit.data.local.db.ReceiptDao
 import com.example.expenseit.ui.viewmodels.CategoryViewModel
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
@@ -48,7 +45,6 @@ import com.exyte.animatednavbar.animation.balltrajectory.Parabolic
 import com.exyte.animatednavbar.animation.indendshape.Height
 import com.exyte.animatednavbar.animation.indendshape.shapeCornerRadius
 import com.exyte.animatednavbar.utils.noRippleClickable
-import kotlin.math.exp
 
 //https://github.com/exyte/AndroidAnimatedNavigationBar -> Animated Navigation Bar
 
@@ -68,9 +64,12 @@ fun ExpenseItApp(
     val navController = rememberNavController()
     val navigationBarItems = remember { NavigationBarItems.entries.toTypedArray() }
     var selectedIndex by rememberSaveable { mutableStateOf(0) }
+    var currentRoute by remember { mutableStateOf("expense_list") } // Track current route
 
     LaunchedEffect(navController) {
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            currentRoute = destination.route ?: "expense_list"
+
             // Get the index of the destination in the navigationBarItems list
             val newIndex = navigationBarItems.indexOfFirst { it.route == destination.route }
             if (newIndex >= 0) {
@@ -79,18 +78,21 @@ fun ExpenseItApp(
         }
     }
 
+    val hideBottomBarScreens = listOf("add_expense", "add_expense/{expenseId}", "category_list", "receipt_details/{receiptId}")
+
     Scaffold(
         floatingActionButton = {
-            Box() {
+            if (currentRoute !in hideBottomBarScreens) {  // Hide FAB on specific screens
                 FloatingActionButton(
                     onClick = {
                         navController.navigate("add_expense") {
-                        launchSingleTop = true
-                        restoreState = true}
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     },
                     shape = CircleShape,
                     modifier = Modifier
-                        .align(Alignment.Center)
+//                        .align(Alignment.Center)
                         .size(70.dp)
                         .offset(y = 70.dp)
                 ) {
@@ -100,46 +102,48 @@ fun ExpenseItApp(
         },
         floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
-            AnimatedNavigationBar(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .height(64.dp),
-                selectedIndex = selectedIndex,
-                cornerRadius = shapeCornerRadius(cornerRadius = 34.dp),
-                ballAnimation = Parabolic(tween(300)),
-                indentAnimation = Height(tween(300)),
-                barColor = MaterialTheme.colorScheme.primary,
-                ballColor = MaterialTheme.colorScheme.primary,
-            ) {
-                navigationBarItems.forEachIndexed { index, item ->
-                    if (index == 2) {
-                        //Spacer for FAB
-                        Spacer(Modifier.width(55.dp))
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .noRippleClickable {
-                                selectedIndex = item.ordinal
-                                navController.navigate(item.route) {
-                                    launchSingleTop = true
-                                    restoreState = true
+            if (currentRoute !in hideBottomBarScreens) { // Hide Bottom Bar on specific screens
+                AnimatedNavigationBar(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .height(64.dp),
+                    selectedIndex = selectedIndex,
+                    cornerRadius = shapeCornerRadius(cornerRadius = 34.dp),
+                    ballAnimation = Parabolic(tween(300)),
+                    indentAnimation = Height(tween(300)),
+                    barColor = MaterialTheme.colorScheme.primary,
+                    ballColor = MaterialTheme.colorScheme.primary,
+                ) {
+                    navigationBarItems.forEachIndexed { index, item ->
+                        if (index == 2) {
+                            //Spacer for FAB
+                            Spacer(Modifier.width(55.dp))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .noRippleClickable {
+                                    selectedIndex = item.ordinal
+                                    navController.navigate(item.route) {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = item.iconRes),
+                                modifier = Modifier.size(26.dp),
+                                contentDescription = "Bottom Bar Icon",
+                                colorFilter = if (selectedIndex <= 2 && selectedIndex == item.ordinal || selectedIndex > 2 && selectedIndex - 1 == item.ordinal) {
+                                    // Change color for selected icon
+                                    ColorFilter.tint(MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    // Change color for unselected icon
+                                    ColorFilter.tint(MaterialTheme.colorScheme.inversePrimary)
                                 }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = item.iconRes),
-                            modifier = Modifier.size(26.dp),
-                            contentDescription = "Bottom Bar Icon",
-                            colorFilter = if (selectedIndex <= 2 && selectedIndex == item.ordinal || selectedIndex > 2 && selectedIndex - 1 == item.ordinal) {
-                                // Change color for selected icon
-                                ColorFilter.tint(MaterialTheme.colorScheme.onPrimary)
-                            } else {
-                                // Change color for unselected icon
-                                ColorFilter.tint(MaterialTheme.colorScheme.inversePrimary)
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
