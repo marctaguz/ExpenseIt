@@ -14,3 +14,9 @@ data class Expense(
     val date: Long,
     val receiptId: Int? = null
 )
+
+data class ExpenseSummary(
+    val month: String,
+    val total: BigDecimal,
+)
+

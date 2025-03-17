@@ -13,7 +13,7 @@ import com.example.expenseit.utils.BigDecimalConverter
 
 @Database(
     entities = [Expense::class, Category::class, Receipt::class, ReceiptItem::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(BigDecimalConverter::class)
@@ -136,5 +136,29 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
 val MIGRATION_2_3 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE receipt_item ADD COLUMN price TEXT DEFAULT '0.00'")
+    }
+}
+
+val MIGRATION_3_4 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE categories ADD COLUMN color TEXT NOT NULL DEFAULT 'categoryColour1'")
+
+        // Assign specific colors to existing categories based on their names
+        val categoryColors = mapOf(
+            "Entertainment" to "categoryColour1",
+            "Transport" to "categoryColour2",
+            "Grocery" to "categoryColour3",
+            "Food" to "categoryColour4",
+            "Shopping" to "categoryColour5",
+            "Bills" to "categoryColour6",
+            "Education" to "categoryColour7",
+            "Health" to "categoryColour8",
+            "Other" to "categoryColour9"
+        )
+
+        // Update the color for each category
+        categoryColors.forEach { (name, color) ->
+            db.execSQL("UPDATE categories SET color = '$color' WHERE name = '$name'")
+        }
     }
 }

@@ -11,27 +11,27 @@ import javax.inject.Inject
 class CategoryRepository @Inject constructor(
     private val categoryDao: CategoryDao
 ) {
-    private val ioScope = CoroutineScope(Dispatchers.IO)  // ✅ Define a scope for background tasks
+    suspend fun initializeDefaultCategories() {
+        val existingCategories = categoryDao.getAllCategories().first()
 
-    fun initializeDefaultCategories() {
-        ioScope.launch {
-            val existingCategories = categoryDao.getAllCategories().first() // ✅ Wait for first emission
+        if (existingCategories.isEmpty()) {
+            val defaultCategories = listOf(
+                Category(name = "Entertainment", order = 1, color = "categoryColour1"),
+                Category(name = "Transport", order = 2, color = "categoryColour2"),
+                Category(name = "Grocery", order = 3, color = "categoryColour3"),
+                Category(name = "Food", order = 4, color = "categoryColour4"),
+                Category(name = "Shopping", order = 5, color = "categoryColour5"),
+                Category(name = "Bills", order = 6, color = "categoryColour6"),
+                Category(name = "Education", order = 7, color = "categoryColour7"),
+                Category(name = "Health", order = 8, color = "categoryColour8"),
+                Category(name = "Other", order = 9, color = "categoryColour9")
+            )
 
-            if (existingCategories.isEmpty()) {
-                val defaultCategories = listOf(
-                    Category(name = "Entertainment", order = 1),
-                    Category(name = "Transport", order = 2),
-                    Category(name = "Grocery", order = 3),
-                    Category(name = "Food", order = 4),
-                    Category(name = "Shopping", order = 5),
-                    Category(name = "Bills", order = 6),
-                    Category(name = "Education", order = 7),
-                    Category(name = "Health", order = 8),
-                    Category(name = "Other", order = 9)
-                )
-
-                categoryDao.insertAll(defaultCategories) // ✅ Insert all at once
-            }
+            categoryDao.insertAll(defaultCategories)
         }
+    }
+
+    suspend fun getCategoryByName(name: String): Category? {
+        return categoryDao.getAllCategories().first().find { it.name == name }
     }
 }

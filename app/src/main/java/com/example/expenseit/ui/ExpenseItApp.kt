@@ -78,7 +78,7 @@ fun ExpenseItApp(
         }
     }
 
-    val hideBottomBarScreens = listOf("add_expense", "add_expense/{expenseId}", "category_list", "receipt_details/{receiptId}")
+    val hideBottomBarScreens = listOf("add_expense", "add_expense/{expenseId}", "category_list", "receipt_details/{receiptId}", "edit_category")
 
     Scaffold(
         floatingActionButton = {
@@ -183,6 +183,9 @@ fun ExpenseItApp(
                 } else {
                     Log.d("ExpenseItApp", "ReceiptId is null")
                 }
+            }
+            composable("edit_category") {
+                EditCategoriesScreen(navController = navController)
             }
         }
     }

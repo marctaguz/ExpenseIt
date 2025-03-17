@@ -46,7 +46,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.components.CustomDateField
@@ -67,6 +66,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
 
     var editedMerchantName by remember { mutableStateOf("") }
     var editedTransactionDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var editedTotalPrice by remember { mutableStateOf(BigDecimal.ZERO) }
 
     // Store initial state for comparison
     var initialReceipt by remember { mutableStateOf<Receipt?>(null) }
@@ -75,9 +75,6 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showImagePreview by remember { mutableStateOf(false) }
 
-    val totalPrice = editedItems
-        .sumOf { it.price * it.quantity.toBigDecimal() }
-        .setScale(2, BigDecimal.ROUND_HALF_UP)
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val expenseViewModel: ExpenseViewModel = hiltViewModel()
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
@@ -90,7 +87,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             editedItems = fetchedItems.toMutableList()  // Create a copy for UI editing
             editedMerchantName = fetchedReceipt?.merchantName ?: ""
             editedTransactionDate = fetchedReceipt?.date ?: System.currentTimeMillis()
-            // Save the initial state for later comparison
+            editedTotalPrice = fetchedReceipt?.totalPrice ?: BigDecimal("0.00")
             initialReceipt = fetchedReceipt?.copy()
             initialItems = fetchedItems.map { it.copy() }
         }
@@ -122,7 +119,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                             val updatedReceipt = it.copy(
                                 merchantName = editedMerchantName,
                                 date = editedTransactionDate,
-                                totalPrice = totalPrice
+                                totalPrice = editedTotalPrice
                             )
                             receiptViewModel.updateReceipt(updatedReceipt)
                         }
@@ -147,19 +144,6 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                         .fillMaxWidth()
                         .padding(16.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(
-                            text = "Total: ",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(text = currency + " %.2f".format(totalPrice),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold)
-                    }
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -232,7 +216,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                             .padding(horizontal = 5.dp, vertical = 20.dp)
                         ) {
                             Column(modifier = Modifier
-                                .weight(0.5f)
+                                .weight(1f)
                                 .padding(horizontal = 10.dp)
                             ) {
                                 CustomTextField(
@@ -242,7 +226,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                                 )
                             }
                             Column(modifier = Modifier
-                                .weight(0.5f)
+                                .weight(1f)
                                 .padding(horizontal = 10.dp)
                             ) {
                                 CustomDateField(
@@ -252,7 +236,24 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                                 )
 
                             }
+
                         }
+                        Row {
+                            Column(
+                                modifier = Modifier
+                                    .padding(start = 10.dp, bottom = 20.dp).weight(1f)
+                            ) {
+                                CustomTextField(
+                                    value = editedTotalPrice.toString(),
+                                    onValueChange = { input ->
+                                        editedTotalPrice = input.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                                    },
+                                    label = "Total Price"
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {}
+                        }
+
                     }
 
                     //Items list section

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -29,7 +30,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.expenseit.data.local.entities.ReceiptItem
+import com.example.expenseit.ui.viewmodels.SettingsViewModel
 import java.math.BigDecimal
 
 @Composable
@@ -39,9 +43,13 @@ fun ReceiptItemCard(
     onEditClick: () -> Unit,
     onDoneEditing: (ReceiptItem) -> Unit,
     onDelete: () -> Unit) {
+
     var editedItemName by remember { mutableStateOf(item.itemName) }
     var editedQuantity by remember { mutableStateOf(item.quantity.toString()) }
     var editedPrice by remember { mutableStateOf(item.price.toString()) }
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
+
 
     Column(
         modifier = Modifier
@@ -71,7 +79,7 @@ fun ReceiptItemCard(
                         value = editedQuantity,
                         onValueChange = { editedQuantity = it },
                         label = "Quantity",
-                        modifier = Modifier.weight(1f),
+                        weightModifier = Modifier.weight(1f),
                         isDecimal = false
                     )
 
@@ -81,7 +89,7 @@ fun ReceiptItemCard(
                         value = editedPrice,
                         onValueChange = { editedPrice = it },
                         label = "Price",
-                        modifier = Modifier.weight(1f),
+                        weightModifier = Modifier.weight(3f),
                         isDecimal = true
                     )
                 }
@@ -95,12 +103,15 @@ fun ReceiptItemCard(
                 ) {
                     Button(
                         onClick = {
-                            val updatedItem = item.copy(
-                                itemName = editedItemName,
-                                quantity = editedQuantity.toIntOrNull() ?: item.quantity,
-                                price = editedPrice.toBigDecimalOrNull()?.setScale(2, BigDecimal.ROUND_HALF_UP) ?: item.price
-                            )
-                            onDoneEditing(updatedItem) // Pass updated item back
+                            if (editedItemName.isNotBlank() && editedQuantity.isNotBlank() && editedPrice.isNotBlank()) {
+                                onDoneEditing(
+                                    item.copy(
+                                        itemName = editedItemName,
+                                        quantity = editedQuantity.toIntOrNull() ?: item.quantity,
+                                        price = editedPrice.toBigDecimalOrNull() ?: item.price
+                                    )
+                                )
+                            }
                         }
                     ) {
                         Text(text = "Done")
@@ -110,10 +121,11 @@ fun ReceiptItemCard(
         } else {
             // View Mode Layout
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(3f)
                 ) {
                     Text(
                         text = item.itemName,
@@ -124,37 +136,53 @@ fun ReceiptItemCard(
                     )
 
                     Row {
+                        // Quantity & Price Row
                         Text(
                             text = "${if (item.quantity.toDouble() == item.quantity.toDouble()) item.quantity else item.quantity} × ",
                             color = Color.Gray
                         )
                         Text(
-                            text = "$${String.format("%.2f", item.price)}",
+                            text = "$currency${String.format("%.2f", item.price)}",
                             color = Color.Gray
                         )
                     }
                 }
 
+                // Total Price
                 Text(
-                    text = "$${String.format("%.2f", item.quantity * item.price.toDouble())}",
-                    modifier = Modifier.width(60.dp),
+                    text = "$currency${String.format("%.2f", item.quantity * item.price.toDouble())}",
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
 
-                IconButton(onClick = { onEditClick() }) { // Only one item can enter edit mode
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = Color.Gray
-                    )
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                // Edit and Delete Buttons
+                Row(
+                    modifier = Modifier.width(80.dp), // Constrain the width of the buttons
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(
+                        onClick = { onEditClick() },
+                        modifier = Modifier.padding(0.dp) // Remove padding around the button
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(20.dp) // Reduce icon size
+                        )
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.padding(0.dp) // Remove padding around the button
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp) // Reduce icon size
+                        )
+                    }
                 }
             }
         }

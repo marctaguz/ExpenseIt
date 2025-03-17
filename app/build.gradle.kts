@@ -109,6 +109,8 @@ dependencies {
 
     implementation(libs.accompanist.swiperefresh)
     implementation(libs.vico.compose.m3)
+    implementation(libs.androidchart)
+    implementation(libs.reorderable)
 }
 
 // Allow references to generated code

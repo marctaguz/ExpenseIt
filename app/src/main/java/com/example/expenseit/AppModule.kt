@@ -7,6 +7,7 @@ import com.example.expenseit.data.local.db.ExpenseDao
 import com.example.expenseit.data.local.db.ExpenseDatabase
 import com.example.expenseit.data.local.db.MIGRATION_1_2
 import com.example.expenseit.data.local.db.MIGRATION_2_3
+import com.example.expenseit.data.local.db.MIGRATION_3_4
 import com.example.expenseit.data.local.db.MIGRATION_3_5
 import com.example.expenseit.data.local.db.MIGRATION_5_6
 import com.example.expenseit.data.local.db.MIGRATION_6_7
@@ -37,7 +38,7 @@ object AppModule {
             context.applicationContext,
             ExpenseDatabase::class.java,
             "expense_database"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration() // ⚠️ Resets database if schema changes
             .build()
     }

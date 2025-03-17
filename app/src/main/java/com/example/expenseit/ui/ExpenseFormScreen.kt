@@ -50,6 +50,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.expenseit.ui.components.CustomDateField
+import com.example.expenseit.ui.components.CustomNumberField
+import com.example.expenseit.ui.components.CustomTextField
 import com.example.expenseit.ui.components.DatePickerModal
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
@@ -121,28 +123,22 @@ fun ExpenseFormScreen(
                 .padding(paddingValues)
                 .padding(16.dp)) {
                 // Title field
-                OutlinedTextField(
+                CustomTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = "Title",
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Amount field
-                OutlinedTextField(
+                CustomNumberField(
                     value = amount,
                     onValueChange = {
-                        // Allow decimal input for amount with up to two decimal places
-                        if (it.isEmpty() || it.matches("^\\d*\\.?\\d{0,2}\$".toRegex())) {
-                            amount = it
-                            amountError = "" // Clear error when valid input is entered
-                        } else {
-                            amountError = "Amount must be a valid number with up to 2 decimal places"
-                        }
+                        amount = it
                     },
-                    label = { Text("Amount") },
-                    isError = amountError.isNotEmpty(),
+                    label = "Amount",
+                    isDecimal = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (amountError.isNotEmpty()) {
@@ -154,10 +150,10 @@ fun ExpenseFormScreen(
                 val interactionSource = remember { MutableInteractionSource() }
                 Box {
                     // OutlinedTextField for displaying the selected category
-                    OutlinedTextField(
+                    CustomTextField(
                         value = category,
                         onValueChange = { /* Do nothing, handled by dialog */ },
-                        label = { Text("Select Category") },
+                        label = "Select Category",
                         readOnly = true,
                         trailingIcon = {
                             Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Category")
@@ -184,10 +180,10 @@ fun ExpenseFormScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Description field
-                OutlinedTextField(
+                CustomTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    label = "Description",
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))

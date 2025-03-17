@@ -1,69 +1,107 @@
 package com.example.expenseit.ui.components
 
+import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.expenseit.data.local.entities.Category
 import com.example.expenseit.ui.viewmodels.SettingsViewModel
 
 import com.example.expenseit.data.local.entities.Expense
+import com.example.expenseit.ui.theme.categoryColors
+import com.example.expenseit.ui.viewmodels.CategoryViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
 fun ExpenseItem(expense: Expense, onClick: (Expense) -> Unit) {
-    // Date formatter
     val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val formattedDate = dateFormatter.format(expense.date)
 
+    val categoryViewModel: CategoryViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 0.dp)
+            .padding(vertical = 8.dp)
             .clickable { onClick(expense) },
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        shape = MaterialTheme.shapes.medium
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp),
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Title: ${expense.title}",
-                    fontWeight = FontWeight.Bold
+                    text = expense.title,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
                 )
+
+                ExpenseCategoryBadge(categoryName = expense.category)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "Category: ${expense.category}",
-                    fontWeight = FontWeight.Bold
+                    text = formattedDate,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
+
                 Text(
-                    text = "Date: $formattedDate",
-                    fontWeight = FontWeight.Light,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    text = "$currency ${"%.2f".format(expense.amount)}",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
-            Text(
-                text = "$currency ${expense.amount}",
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
 
+        }
+    }
+}
+
+@Composable
+fun ExpenseCategoryBadge(categoryName: String) {
+    val badgeColor = categoryColors[categoryName] ?: MaterialTheme.colorScheme.primary
+    Box(
+        modifier = Modifier
+            .background(
+                color = badgeColor.copy(alpha = 0.1f),
+                shape = MaterialTheme.shapes.small
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = categoryName,
+            color = badgeColor,
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }

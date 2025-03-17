@@ -7,8 +7,6 @@ object DateUtils {
     private val apiDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // Match API response
     private val outputDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) // App display format
 
-    private val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-
     fun dateStringToLong(dateString: String?): Long? {
         return try {
             dateString?.let {
@@ -17,6 +15,23 @@ object DateUtils {
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    fun formatDateForChart(dateInMillis: Long): String {
+        val dateFormatter = SimpleDateFormat("dd-MMM", Locale.getDefault())
+        return dateFormatter.format(Date(dateInMillis))
+    }
+
+    fun formatMonthForChart(yearMonth: String): String {
+        val inputFormat = SimpleDateFormat("yyyy-MM", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("MMM", Locale.getDefault())  // ✅ "Mar", "Apr"
+        return try {
+            val date = inputFormat.parse(yearMonth)
+            date?.let { outputFormat.format(it) } ?: ""
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
         }
     }
 

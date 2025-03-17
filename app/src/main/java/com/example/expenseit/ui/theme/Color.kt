@@ -2,6 +2,29 @@ package com.example.expenseit.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+val categoryColour1 = Color(0xFFD0BCFF) // Entertainment (Purple)
+val categoryColour2 = Color(0xFF6200EE) // Transport (Deep Purple)
+val categoryColour3 = Color(0xFF03DAC6) // Grocery (Teal)
+val categoryColour4 = Color(0xFF018786) // Food (Dark Teal)
+val categoryColour5 = Color(0xFFFFD600) // Shopping (Yellow)
+val categoryColour6 = Color(0xFFFF6D00) // Bills (Orange)
+val categoryColour7 = Color(0xFF3700B3) // Education (Dark Blue)
+val categoryColour8 = Color(0xFFBB86FC) // Health (Light Purple)
+val categoryColour9 = Color(0xFFCF6679) // Other (Pink)
+
+// Map of category names to their corresponding colors
+val categoryColors = mapOf(
+    "categoryColour1" to categoryColour1,
+    "categoryColour2" to categoryColour2,
+    "categoryColour3" to categoryColour3,
+    "categoryColour4" to categoryColour4,
+    "categoryColour5" to categoryColour5,
+    "categoryColour6" to categoryColour6,
+    "categoryColour7" to categoryColour7,
+    "categoryColour8" to categoryColour8,
+    "categoryColour9" to categoryColour9
+)
+
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)
