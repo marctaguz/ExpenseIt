@@ -2,7 +2,10 @@ package com.example.expenseit.ui
 
 import SettingsScreen
 import android.util.Log
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -153,7 +156,15 @@ fun ExpenseItApp(
             .padding(innerPadding)
             .padding(all = 12.dp)
 
-        NavHost(navController = navController, startDestination = "expense_list", Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = "expense_list",
+            Modifier.fillMaxSize(),
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) },
+        ) {
             composable("expense_list") {
                 ExpenseListScreen(navController = navController, expenseViewModel = expenseViewModel, modifier = contentModifier)
             }

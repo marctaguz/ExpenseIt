@@ -8,6 +8,7 @@ import com.example.expenseit.data.local.db.CategoryDao
 import com.example.expenseit.data.local.entities.Category
 import com.example.expenseit.data.repository.CategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,15 +23,24 @@ class CategoryViewModel @Inject constructor(
     private val categoryDao: CategoryDao
 ) : ViewModel() {
 
-    val categories: StateFlow<List<Category>> = categoryDao.getAllCategories()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
+
 
     init {
         viewModelScope.launch {
             categoryRepository.initializeDefaultCategories()
+            loadCategories()
         }
     }
 
+    fun loadCategories() {
+        viewModelScope.launch {
+            categoryDao.getAllCategories().collect { categories ->
+                _categories.value = categories
+            }
+        }
+    }
 
     fun addCategory(name: String, color: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
@@ -63,5 +73,9 @@ class CategoryViewModel @Inject constructor(
         viewModelScope.launch {
             categoryDao.updateOrder(updatedCategories)
         }
+    }
+
+    fun getCategoryById(categoryId: Long): Flow<Category?> {
+        return categoryDao.getCategoryById(categoryId)
     }
 }

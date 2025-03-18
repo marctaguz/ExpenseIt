@@ -16,6 +16,7 @@ class CategoryRepository @Inject constructor(
 
         if (existingCategories.isEmpty()) {
             val defaultCategories = listOf(
+                Category(id = 1, name = "Uncategorized", order = 0, color = "categoryColour1"),
                 Category(name = "Entertainment", order = 1, color = "categoryColour1"),
                 Category(name = "Transport", order = 2, color = "categoryColour2"),
                 Category(name = "Grocery", order = 3, color = "categoryColour3"),

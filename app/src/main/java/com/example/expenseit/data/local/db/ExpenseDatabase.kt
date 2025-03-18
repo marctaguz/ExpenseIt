@@ -13,7 +13,7 @@ import com.example.expenseit.utils.BigDecimalConverter
 
 @Database(
     entities = [Expense::class, Category::class, Receipt::class, ReceiptItem::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(BigDecimalConverter::class)
@@ -160,5 +160,31 @@ val MIGRATION_3_4 = object : Migration(2, 3) {
         categoryColors.forEach { (name, color) ->
             db.execSQL("UPDATE categories SET color = '$color' WHERE name = '$name'")
         }
+    }
+}
+
+val MIGRATION_4_5 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Step 1: Add the new categoryId column
+        db.execSQL("ALTER TABLE expenses ADD COLUMN categoryId INTEGER NOT NULL DEFAULT 1")
+
+        // Step 2: Populate the categoryId column based on the existing category names
+        // Fetch all categories from the categories table
+        val cursor = db.query("SELECT id, name FROM categories")
+        val categoryMap = mutableMapOf<String, Long>()
+        while (cursor.moveToNext()) {
+            val id = cursor.getLong(cursor.getColumnIndex("id"))
+            val name = cursor.getString(cursor.getColumnIndex("name"))
+            categoryMap[name] = id
+        }
+        cursor.close()
+
+        // Update the categoryId for each expense based on the category name
+        for ((categoryName, categoryId) in categoryMap) {
+            db.execSQL("UPDATE expenses SET categoryId = $categoryId WHERE category = '$categoryName'")
+        }
+
+        // Step 3: Drop the old category column
+        db.execSQL("ALTER TABLE expenses DROP COLUMN category")
     }
 }

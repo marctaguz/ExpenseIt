@@ -47,7 +47,7 @@ class ExpenseViewModel @Inject constructor(
     fun addExpense(
         title: String,
         amount: BigDecimal,
-        category: String,
+        categoryId: Long,
         description: String,
         date: Long,
         receiptId: Int? = null,
@@ -57,7 +57,7 @@ class ExpenseViewModel @Inject constructor(
         val newExpense = Expense(
             title = title,
             amount = amount,
-            category = category,
+            categoryId = categoryId,
             description = description,
             date = date,
             receiptId = receiptId
@@ -69,12 +69,12 @@ class ExpenseViewModel @Inject constructor(
         }
     }
 
-    fun updateExpense(expenseId: Long, title: String, amount: BigDecimal, category: String, description: String, date: Long, onSuccess: () -> Unit) {
+    fun updateExpense(expenseId: Long, title: String, amount: BigDecimal, categoryId: Long, description: String, date: Long, onSuccess: () -> Unit) {
         val updatedExpense = Expense(
             id = expenseId,
             title = title,
             amount = amount,
-            category = category,
+            categoryId = categoryId,
             description = description,
             date = date
         )
@@ -91,14 +91,6 @@ class ExpenseViewModel @Inject constructor(
             observeExpenses()
             onSuccess()
         }
-    }
-
-    fun getExpensesByCategory(): Flow<Map<String, BigDecimal>> {
-        return expenseDao.getAllExpenses()
-            .map { expenses ->
-                expenses.groupBy { it.category }
-                    .mapValues { (_, items) -> items.sumOf { it.amount } }
-            }
     }
 
     fun getExpensesByDate(): Flow<Map<Long, BigDecimal>> {

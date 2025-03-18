@@ -40,4 +40,7 @@ interface CategoryDao {
             updateCategoryOrder(category.id, index)
         }
     }
+
+    @Query("SELECT * FROM categories WHERE id = :categoryId")
+    fun getCategoryById(categoryId: Long): Flow<Category?>
 }

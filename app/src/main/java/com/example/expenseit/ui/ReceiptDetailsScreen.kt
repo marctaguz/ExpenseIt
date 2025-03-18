@@ -380,10 +380,11 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             confirmButton = {
                 Button(onClick = {
                     receipt?.let { rec ->
+                        val defaultCategoryId = 1L // Replace with your default category ID\
                         expenseViewModel.addExpense(
                                 title = rec.merchantName,
                                 amount = rec.totalPrice,
-                                category = "Uncategorized",
+                                categoryId = defaultCategoryId,
                                 description = "Created from receipt",
                                 date = rec.date,
                                 receiptId = rec.id,

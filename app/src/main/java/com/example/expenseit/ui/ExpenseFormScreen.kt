@@ -54,6 +54,7 @@ import com.example.expenseit.ui.components.CustomNumberField
 import com.example.expenseit.ui.components.CustomTextField
 import com.example.expenseit.ui.components.DatePickerModal
 import com.example.expenseit.ui.components.PageHeader
+import com.example.expenseit.ui.viewmodels.CategoryViewModel
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,18 +64,24 @@ import java.util.Locale
 fun ExpenseFormScreen(
     navController: NavController,
     expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
     expenseId: String?
 ) {
     val context = LocalContext.current
     val expense by expenseViewModel.expense.collectAsState()
+    val categories by categoryViewModel.categories.collectAsState()
 
     var title by rememberSaveable { mutableStateOf("") }
     var amount by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableStateOf("") }
+    var categoryId by rememberSaveable { mutableStateOf<Long>(0) } // Use categoryId
     var description by rememberSaveable { mutableStateOf("") }
     var date by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var amountError by remember { mutableStateOf("") }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+
+    val category by categoryViewModel.getCategoryById(categoryId)
+        .collectAsState(initial = null)
+
 
     LaunchedEffect(expenseId) {
         if (expenseId != null) {
@@ -87,10 +94,18 @@ fun ExpenseFormScreen(
             if (expenseId != null) { // Ensure this only runs when editing
                 title = it.title
                 amount = it.amount.toString()
-                category = it.category
+                categoryId = it.categoryId // Use categoryId
                 description = it.description
                 date = it.date
             }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        navController.currentBackStackEntry?.savedStateHandle?.get<Long>("selectedCategoryId")?.let {
+            Log.d("ExpenseFormScreen", "Received selected category ID: $it")
+            categoryId = it
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Long>("selectedCategoryId")
         }
     }
 
@@ -146,17 +161,18 @@ fun ExpenseFormScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
+                //Category Field
                 val focusRequester = FocusRequester()
                 val interactionSource = remember { MutableInteractionSource() }
                 Box {
-                    // OutlinedTextField for displaying the selected category
                     CustomTextField(
-                        value = category,
+                        value = category?.name ?: "Select Category",
                         onValueChange = { /* Do nothing, handled by dialog */ },
                         label = "Select Category",
                         readOnly = true,
                         trailingIcon = {
                             Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Category")
+
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -201,16 +217,18 @@ fun ExpenseFormScreen(
                 // Save Button
                 Button(
                     onClick = {
-                        if (title.isNotEmpty() && amount.isNotEmpty() && category.isNotEmpty() && amountError.isEmpty()) {
+                        if (title.isNotEmpty() && amount.isNotEmpty() && categoryId != null && amountError.isEmpty()) {
                             val parsedAmount = amount.toBigDecimal()
                             if (expenseId != null) {
                                 // Update existing expense
-                                expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, category, description, date!!) {
+                                expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, categoryId!!, description, date!!) {
                                     navController.popBackStack()
                                 }
                             } else {
                                 // Add new expense
-                                expenseViewModel.addExpense(title, parsedAmount, category, description, date!!) {
+                                expenseViewModel.addExpense(title, parsedAmount, categoryId!!, description,
+                                    date
+                                ) {
                                     navController.popBackStack()
                                 }
                             }
@@ -221,12 +239,6 @@ fun ExpenseFormScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Save Expense")
-                }
-            }
-            // Observe NavBackStackEntry to get the selected category
-            LaunchedEffect(navController.currentBackStackEntry) {
-                navController.currentBackStackEntry?.savedStateHandle?.get<String>("selectedCategory")?.let {
-                    category = it
                 }
             }
         }

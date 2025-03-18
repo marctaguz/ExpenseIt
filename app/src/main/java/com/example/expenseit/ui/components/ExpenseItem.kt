@@ -10,6 +10,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -29,13 +30,16 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun ExpenseItem(expense: Expense, onClick: (Expense) -> Unit) {
+fun ExpenseItem(expense: Expense, categories: List<Category>,onClick: (Expense) -> Unit) {
     val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val formattedDate = dateFormatter.format(expense.date)
 
-    val categoryViewModel: CategoryViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
+    val categoryViewModel: CategoryViewModel = hiltViewModel()
+
+    val category by categoryViewModel.getCategoryById(expense.categoryId)
+        .collectAsState(initial = null)
 
     Card(
         modifier = Modifier
@@ -60,8 +64,7 @@ fun ExpenseItem(expense: Expense, onClick: (Expense) -> Unit) {
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium
                 )
-
-                ExpenseCategoryBadge(categoryName = expense.category)
+                ExpenseCategoryBadge(categoryName = category?.name ?: "Uncategorized", color = category?.color ?: "categoryColour1")
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -87,8 +90,8 @@ fun ExpenseItem(expense: Expense, onClick: (Expense) -> Unit) {
 }
 
 @Composable
-fun ExpenseCategoryBadge(categoryName: String) {
-    val badgeColor = categoryColors[categoryName] ?: MaterialTheme.colorScheme.primary
+fun ExpenseCategoryBadge(categoryName: String, color: String) {
+    val badgeColor = categoryColors[color] ?: MaterialTheme.colorScheme.primary
     Box(
         modifier = Modifier
             .background(

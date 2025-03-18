@@ -1,34 +1,22 @@
 package com.example.expenseit.ui
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -37,21 +25,30 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.expenseit.R
-import com.example.expenseit.data.local.db.ExpenseDao
-import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.ui.components.ExpenseItem
+import com.example.expenseit.ui.theme.PurpleGrey40
+import com.example.expenseit.ui.viewmodels.CategoryViewModel
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.math.exp
 
 @Composable
-fun ExpenseListScreen(navController: NavController, expenseViewModel: ExpenseViewModel = hiltViewModel(), modifier: Modifier) {
+fun ExpenseListScreen(
+    navController: NavController,
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
+    modifier: Modifier,
+) {
     val expenses by expenseViewModel.expenses.collectAsState()
+    val categories by categoryViewModel.categories.collectAsState()
+
+    val groupedExpenses = expenses.groupBy { expense ->
+        SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(expense.date)
+    }
+
+    LaunchedEffect(Unit) {
+        categoryViewModel.loadCategories()
+    }
 
     Scaffold(
         modifier = modifier
@@ -99,10 +96,23 @@ fun ExpenseListScreen(navController: NavController, expenseViewModel: ExpenseVie
                 }
             } else {
                 LazyColumn {
-                    items(expenses) { expense ->
-                        ExpenseItem(expense = expense, onClick = {
-                            navController.navigate("add_expense/${expense.id}")
-                        })
+                    groupedExpenses.forEach { (date, expensesForDate) ->
+                        // Date Header
+                        item {
+                            Text(
+                                text = date,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Light,
+                                color = PurpleGrey40,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        // Expense items for this date
+                        items(expensesForDate) { expense ->
+                            ExpenseItem(expense = expense, categories = categories, onClick = {
+                                navController.navigate("add_expense/${expense.id}")
+                            })
+                        }
                     }
                 }
             }

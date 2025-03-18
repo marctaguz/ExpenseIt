@@ -1,5 +1,6 @@
 package com.example.expenseit.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -64,6 +65,7 @@ fun EditCategoriesScreen(
 ) {
     val categoryViewModel: CategoryViewModel = hiltViewModel()
     val categories by categoryViewModel.categories.collectAsState()
+    Log.d("EditCategoriesScreen", "Categories: $categories")
     var addingNewCategory by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
     var newCategoryColor by remember { mutableStateOf("categoryColour1") }
