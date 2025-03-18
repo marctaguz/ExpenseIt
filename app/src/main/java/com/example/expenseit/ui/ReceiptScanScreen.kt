@@ -4,6 +4,7 @@ import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,9 +45,12 @@ import coil.compose.AsyncImage
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.components.PageHeader
+import com.example.expenseit.ui.components.ReceiptCard
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.example.expenseit.utils.DateUtils
+import com.example.expenseit.utils.FirebaseUtils
 import com.example.expenseit.utils.ReceiptApiClient
+import com.example.expenseit.utils.ReceiptParser
 import com.example.expenseit.utils.ScanResult
 import com.google.firebase.Firebase
 import com.google.firebase.storage.storage
@@ -79,93 +83,33 @@ fun ReceiptScanScreen(navController: NavController,
             .build()
     }
 
-    val receipts by receiptViewModel.receipts.collectAsState()  // Observing list of receipts
-    val activity = LocalContext.current as MainActivity
-    val context = LocalContext.current
+    val receipts by receiptViewModel.receipts.collectAsState()
+    val activity = LocalActivity.current
     val coroutineScope = rememberCoroutineScope()
     val receiptApiClient = remember { ReceiptApiClient() }
-    var receiptData by remember { mutableStateOf<ScanResult?>(null) }
     val scanner = remember { GmsDocumentScanning.getClient(options) }
-    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-
-    suspend fun uploadImageToFirebase(context: Context, imageUri: Uri): String? {
-        return suspendCancellableCoroutine { continuation ->
-            val storageRef = Firebase.storage.reference.child("receipts/${UUID.randomUUID()}")
-            Log.d("uploadImageToFirebase", "Uploading image to Firebase")
-            val uploadTask = storageRef.putFile(imageUri)
-
-            uploadTask.addOnSuccessListener {
-                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    Log.d("uploadImageToFirebase", "Download URL: $downloadUri")
-                    continuation.resume(downloadUri.toString())
-                }.addOnFailureListener { exception ->
-                    Log.e("uploadImageToFirebase", "Failed to get download URL", exception)
-                    continuation.resume(null)
-                }
-            }.addOnFailureListener { exception ->
-                Log.e("uploadImageToFirebase", "Upload failed", exception)
-                continuation.resume(null)
-            }
-            continuation.invokeOnCancellation {
-                uploadTask.cancel()
-            }
-        }
-    }
 
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
-        onResult = {
-            if (it.resultCode == RESULT_OK) {
-                val result = GmsDocumentScanningResult.fromActivityResultIntent(it.data)
-                imageUris = result?.pages?.map { it.imageUri } ?: emptyList()
-
-                result?.pdf?.let { pdf ->
-                    val fos = FileOutputStream(File(context.filesDir, "scan.pdf"))
-                    context.contentResolver.openInputStream(pdf.uri)?.use {
-                        it.copyTo(fos)
-                    }
-                }
-
-                imageUris.forEach { uri ->
+        onResult = { result ->
+            if (result.resultCode == RESULT_OK) {
+                val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+                scanResult?.pages?.forEach { page ->
                     coroutineScope.launch {
-                        val downloadUrl = uploadImageToFirebase(context, uri)
-                        if (downloadUrl != null) {
-                            val scanResult = receiptApiClient.uploadReceipt(downloadUrl)
-                            receiptData = scanResult
-
-                            receiptData?.let { data ->
-                                //Extract main receipt details
-                                val merchantName = data.analyzeResult?.documents?.firstOrNull()?.fields?.MerchantName?.valueString ?: "Unknown Merchant"
-                                val transactionDate = data.analyzeResult?.documents?.firstOrNull()?.fields?.TransactionDate?.valueDate?.let {
-                                    DateUtils.dateStringToLong(it) // Convert to Long
-                                } ?: System.currentTimeMillis() // Default to current date if null
-                                val total = data.analyzeResult?.documents?.firstOrNull()?.fields?.Total?.valueCurrency?.amount
-                                    ?.toBigDecimal()?.setScale(2, BigDecimal.ROUND_HALF_UP) ?: BigDecimal("0.00")
-                                //Extract individual item details
-                                val items = data.analyzeResult?.documents?.firstOrNull()?.fields?.Items?.valueArray?.mapNotNull { item ->
-                                    val itemFields = item.valueObject ?: return@mapNotNull null
-                                    val itemName = itemFields["Description"]?.valueString ?: "Unknown Item"
-                                    val quantity = itemFields["Quantity"]?.valueNumber ?: 1
-                                    val price = itemFields["TotalPrice"]?.valueCurrency?.amount ?.toBigDecimal()?.setScale(2, BigDecimal.ROUND_HALF_UP) ?: BigDecimal("0.00")
-                                    ReceiptItem(receiptId = 0, itemName = itemName, quantity = quantity, price = price)
-                                } ?: emptyList()
-
-                                val newReceipt = Receipt(
-                                    merchantName = merchantName,
-                                    date = transactionDate,
-                                    totalPrice = total,
-                                    imageUrl = downloadUrl
-                                )
-
-                                Log.d("ReceiptScanScreen", "New receipt: $newReceipt")
-                                Log.d("ReceiptScanScreen", "New receipt: $items")
-                                receiptViewModel.insertReceipt(newReceipt, items)
-
-
+                        try {
+                            val downloadUrl = FirebaseUtils.uploadImageToFirebase(page.imageUri)
+                            if (downloadUrl != null) {
+                                val receiptData = receiptApiClient.uploadReceipt(downloadUrl)
+                                receiptData?.let { data ->
+                                    val parsedReceipt = ReceiptParser.parseReceiptData(data)
+                                    parsedReceipt?.let { (receipt, items) ->
+                                        val newReceipt = receipt.copy(imageUrl = downloadUrl)
+                                        receiptViewModel.insertReceipt(newReceipt, items)
+                                    }
+                                }
                             }
-                        } else {
-                            Log.e("ReceiptScanScreen", "Failed to upload image to Firebase")
-                            receiptData = null
+                        } catch (e: Exception) {
+                            Log.e("ReceiptScanScreen", "Error processing receipt", e)
                         }
                     }
                 }
@@ -180,13 +124,17 @@ fun ReceiptScanScreen(navController: NavController,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                scanner.getStartScanIntent(activity)
-                    .addOnSuccessListener { intentSender ->
-                        scannerLauncher.launch(
-                            IntentSenderRequest
-                                .Builder(intentSender)
-                                .build()
-                        )
+                    // Safely unwrap the activity
+                    activity?.let { nonNullActivity ->
+                        scanner.getStartScanIntent(nonNullActivity)
+                            .addOnSuccessListener { intentSender ->
+                                scannerLauncher.launch(
+                                    IntentSenderRequest.Builder(intentSender).build()
+                                )
+                            }
+                    } ?: run {
+                        // Handle the case where the activity is null
+                        Log.e("ReceiptScanScreen", "Activity is null")
                     }
             },
                 modifier = Modifier.padding(bottom = 100.dp)) {
@@ -215,29 +163,3 @@ fun ReceiptScanScreen(navController: NavController,
     )
 }
 
-@Composable
-fun ReceiptCard(receipt: Receipt, navController: NavController) {
-    Card(
-        modifier = Modifier
-            .padding(8.dp)
-            .clickable { navController.navigate("receipt_details/${receipt.id}") },
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            AsyncImage(
-                model = receipt.imageUrl,
-                contentDescription = "Receipt Image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                contentScale = ContentScale.Crop
-            )
-            Text(
-                text = receipt.merchantName,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
-    }
-}

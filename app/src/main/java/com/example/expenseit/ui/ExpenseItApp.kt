@@ -2,7 +2,6 @@ package com.example.expenseit.ui
 
 import SettingsScreen
 import android.util.Log
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,14 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.expenseit.R
-import com.example.expenseit.ui.viewmodels.CategoryViewModel
-import com.example.expenseit.ui.viewmodels.ExpenseViewModel
-import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.exyte.animatednavbar.AnimatedNavigationBar
 import com.exyte.animatednavbar.animation.balltrajectory.Parabolic
 import com.exyte.animatednavbar.animation.indendshape.Height
@@ -59,11 +54,7 @@ enum class NavigationBarItems(val iconRes: Int, val route: String) {
 }
 
 @Composable
-fun ExpenseItApp(
-    expenseViewModel: ExpenseViewModel = hiltViewModel(),
-    categoryViewModel: CategoryViewModel = hiltViewModel(),
-    receiptViewModel: ReceiptViewModel = hiltViewModel()
-) {
+fun ExpenseItApp() {
     val navController = rememberNavController()
     val navigationBarItems = remember { NavigationBarItems.entries.toTypedArray() }
     var selectedIndex by rememberSaveable { mutableStateOf(0) }
@@ -166,7 +157,7 @@ fun ExpenseItApp(
             popExitTransition = { fadeOut(animationSpec = tween(300)) },
         ) {
             composable("expense_list") {
-                ExpenseListScreen(navController = navController, expenseViewModel = expenseViewModel, modifier = contentModifier)
+                ExpenseListScreen(navController = navController, modifier = contentModifier)
             }
             composable("receipt_scan") {
                 ReceiptScanScreen(navController = navController, modifier = contentModifier)
@@ -178,14 +169,14 @@ fun ExpenseItApp(
                 SettingsScreen(navController = navController, modifier = contentModifier)
             }
             composable("add_expense") {
-                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = null)
+                ExpenseFormScreen(navController = navController, expenseId = null)
             }
             composable("add_expense/{expenseId}") { backStackEntry ->
                 val expenseId = backStackEntry.arguments?.getString("expenseId")
-                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = expenseId)
+                ExpenseFormScreen(navController = navController, expenseId = expenseId)
             }
             composable("category_list") {
-                CategoryListScreen(navController = navController, categoryViewModel = categoryViewModel)
+                CategoryListScreen(navController = navController)
             }
             composable("receipt_details/{receiptId}") {
                 val receiptId = it.arguments?.getString("receiptId")?.toIntOrNull()
