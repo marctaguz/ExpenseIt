@@ -1,83 +1,190 @@
 package com.example.expenseit.data.local.db
 
-import android.content.Context
 import androidx.room.Database
-import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.expenseit.data.local.db.ExpenseDatabase.Companion.getDatabase
 import com.example.expenseit.data.local.entities.Category
 import com.example.expenseit.data.local.entities.Expense
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.example.expenseit.data.local.entities.Receipt
+import com.example.expenseit.data.local.entities.ReceiptItem
+import com.example.expenseit.utils.BigDecimalConverter
 
-@Database(entities = [Expense::class, Category::class], version = 5)
+@Database(
+    entities = [Expense::class, Category::class, Receipt::class, ReceiptItem::class],
+    version = 5,
+    exportSchema = false
+)
+@TypeConverters(BigDecimalConverter::class)
 abstract class ExpenseDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
     abstract fun categoryDao(): CategoryDao
-
-    companion object {
-        @Volatile
-        private var INSTANCE: ExpenseDatabase? = null
-
-        fun getDatabase(context: Context): ExpenseDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    ExpenseDatabase::class.java,
-                    "expense_database"
-                )
-                    .fallbackToDestructiveMigration() //temporary
-                    .addMigrations(MIGRATION_3_5)
-                    .build()
-                INSTANCE = instance
-                instance
-            }
-        }
-
-        fun initializeDefaultCategories(context: Context) {
-            CoroutineScope(Dispatchers.IO).launch {
-                val database = getDatabase(context)
-                val categoryDao = database.categoryDao()
-
-                if (categoryDao.getAllCategories().isEmpty()) {
-                    val defaultCategories = listOf(
-                        Category(name = "Entertainment", order = 1),
-                        Category(name = "Transport", order = 2),
-                        Category(name = "Grocery", order = 3),
-                        Category(name = "Food", order = 4),
-                        Category(name = "Shopping", order = 5),
-                        Category(name = "Bills", order = 6),
-                        Category(name = "Education", order = 7),
-                        Category(name = "Health", order = 8),
-                        Category(name = "Other", order = 9)
-                    )
-                    categoryDao.insertAll(defaultCategories)
-                }
-            }
-        }
-    }
-
+    abstract fun receiptDao(): ReceiptDao
 }
 
-val MIGRATION_3_4 = object : Migration(3, 4) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        // Create the 'categories' table
-        database.execSQL("""
-            CREATE TABLE IF NOT EXISTS `categories` (
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `receipts` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `name` TEXT NOT NULL
+                `merchantName` TEXT NOT NULL,
+                `transactionDate` TEXT NOT NULL,
+                `totalPrice` REAL NOT NULL
             )
-        """)
+            """
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `receipt_items` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `receiptId` INTEGER NOT NULL,
+                `itemName` TEXT NOT NULL,
+                `quantity` INTEGER NOT NULL,
+                `price` REAL NOT NULL,
+                FOREIGN KEY(`receiptId`) REFERENCES `receipts`(`id`) ON DELETE CASCADE
+            )
+            """
+        )
     }
 }
 
 val MIGRATION_3_5 = object : Migration(3, 5) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE categories ADD COLUMN `order` INTEGER NOT NULL DEFAULT 0")
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE categories ADD COLUMN `order` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // ✅ Create a new table with the correct schema
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `receipts_new` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `merchantName` TEXT NOT NULL,
+                `transactionDate` TEXT NOT NULL,
+                `totalPrice` REAL NOT NULL,
+                `imageUrl` TEXT NOT NULL DEFAULT ''
+            )
+            """
+        )
+
+        // ✅ Copy existing data to the new table
+        db.execSQL(
+            """
+            INSERT INTO `receipts_new` (id, merchantName, transactionDate, totalPrice, imageUrl)
+            SELECT id, merchantName, transactionDate, totalPrice, COALESCE(imageUrl, '') FROM receipts
+            """
+        )
+
+        // ✅ Remove old table and rename the new table
+        db.execSQL("DROP TABLE receipts")
+        db.execSQL("ALTER TABLE receipts_new RENAME TO receipts")
+    }
+}
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Step 1: Add new column 'date' with a default value (e.g., Unix timestamp 0)
+        db.execSQL("ALTER TABLE receipts ADD COLUMN date INTEGER NOT NULL DEFAULT 0")
+
+        // Step 2: Convert 'transactionDate' (TEXT) to 'date' (INTEGER)
+        db.execSQL("""
+            UPDATE receipts 
+            SET date = CASE 
+                WHEN transactionDate IS NOT NULL AND transactionDate != '' 
+                THEN strftime('%s', transactionDate) * 1000 
+                ELSE 0 
+            END
+        """)
+
+        // Step 3: Remove old column (SQLite doesn't support DROP COLUMN directly)
+        db.execSQL("""
+            CREATE TABLE receipts_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                merchantName TEXT NOT NULL,
+                date INTEGER NOT NULL,
+                totalPrice REAL NOT NULL,
+                imageUrl TEXT NOT NULL
+            )
+        """)
+
+        // Step 4: Copy existing data to the new table
+        db.execSQL("""
+            INSERT INTO receipts_new (id, merchantName, date, totalPrice, imageUrl)
+            SELECT id, merchantName, date, totalPrice, imageUrl FROM receipts
+        """)
+
+        // Step 5: Drop old table
+        db.execSQL("DROP TABLE receipts")
+
+        // Step 6: Rename new table to original name
+        db.execSQL("ALTER TABLE receipts_new RENAME TO receipts")
     }
 }
 
 
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // ✅ Add new column "receiptId" (nullable by default)
+        db.execSQL("ALTER TABLE expenses ADD COLUMN receiptId INTEGER NULL")
+    }
+}
+
+val MIGRATION_2_3 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE receipt_item ADD COLUMN price TEXT DEFAULT '0.00'")
+    }
+}
+
+val MIGRATION_3_4 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE categories ADD COLUMN color TEXT NOT NULL DEFAULT 'categoryColour1'")
+
+        // Assign specific colors to existing categories based on their names
+        val categoryColors = mapOf(
+            "Entertainment" to "categoryColour1",
+            "Transport" to "categoryColour2",
+            "Grocery" to "categoryColour3",
+            "Food" to "categoryColour4",
+            "Shopping" to "categoryColour5",
+            "Bills" to "categoryColour6",
+            "Education" to "categoryColour7",
+            "Health" to "categoryColour8",
+            "Other" to "categoryColour9"
+        )
+
+        // Update the color for each category
+        categoryColors.forEach { (name, color) ->
+            db.execSQL("UPDATE categories SET color = '$color' WHERE name = '$name'")
+        }
+    }
+}
+
+val MIGRATION_4_5 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Step 1: Add the new categoryId column
+        db.execSQL("ALTER TABLE expenses ADD COLUMN categoryId INTEGER NOT NULL DEFAULT 1")
+
+        // Step 2: Populate the categoryId column based on the existing category names
+        // Fetch all categories from the categories table
+        val cursor = db.query("SELECT id, name FROM categories")
+        val categoryMap = mutableMapOf<String, Long>()
+        while (cursor.moveToNext()) {
+            val id = cursor.getLong(cursor.getColumnIndex("id"))
+            val name = cursor.getString(cursor.getColumnIndex("name"))
+            categoryMap[name] = id
+        }
+        cursor.close()
+
+        // Update the categoryId for each expense based on the category name
+        for ((categoryName, categoryId) in categoryMap) {
+            db.execSQL("UPDATE expenses SET categoryId = $categoryId WHERE category = '$categoryName'")
+        }
+
+        // Step 3: Drop the old category column
+        db.execSQL("ALTER TABLE expenses DROP COLUMN category")
+    }
+}

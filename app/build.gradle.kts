@@ -3,16 +3,19 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.org.jetbrains.kotlin.kapt)
     alias(libs.plugins.google.dagger.hilt)
+    id("com.google.gms.google-services")
+    alias(libs.plugins.compose.compiler)
+    id("com.google.devtools.ksp")
 }
 
 android {
     namespace = "com.example.expenseit"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.expenseit"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -75,7 +78,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
 //    implementation(libs.androidx.room.compiler)
-    kapt(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.fragment.ktx)
@@ -83,8 +86,6 @@ dependencies {
     implementation(libs.ui)
     implementation(libs.androidx.material)
     implementation(libs.ui.tooling.preview)
-    implementation(libs.androidx.lifecycle.runtime.ktx.v251)
-    implementation(libs.androidx.activity.compose.v170)
 
     implementation(libs.animated.navigation.bar)
 
@@ -102,6 +103,14 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.storage)
+
+    implementation(libs.accompanist.swiperefresh)
+    implementation(libs.vico.compose.m3)
+    implementation(libs.androidchart)
+    implementation(libs.reorderable)
 }
 
 // Allow references to generated code

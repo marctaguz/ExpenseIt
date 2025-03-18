@@ -49,6 +49,22 @@ fun SettingsScreen(navController: NavController, modifier: Modifier = Modifier) 
                         modifier = Modifier.align(Alignment.CenterStart)
                     )
                 }
+
+                Text("Category", style = MaterialTheme.typography.titleLarge)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate("edit_category") }
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "Edit Category",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
+                }
+
+
                 if (showCurrencyDialog) {
                     CurrencySelectionDialog(
                         selectedCurrency = selectedCurrency,

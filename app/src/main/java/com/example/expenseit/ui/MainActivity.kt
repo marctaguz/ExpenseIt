@@ -3,7 +3,6 @@ package com.example.expenseit.ui
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.example.expenseit.data.local.db.ExpenseDatabase
 import com.example.expenseit.ui.theme.ExpenseItTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -11,12 +10,10 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ExpenseDatabase.initializeDefaultCategories(this)
-
 
         setContent {
             ExpenseItTheme {
-                ExpenseTrackerApp()
+                ExpenseItApp()
             }
         }
     }

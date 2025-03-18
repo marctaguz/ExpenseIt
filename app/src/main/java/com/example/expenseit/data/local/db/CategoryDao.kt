@@ -8,7 +8,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.example.expenseit.data.local.entities.Category
-import com.example.expenseit.data.local.entities.Expense
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryDao {
@@ -25,7 +25,7 @@ interface CategoryDao {
     suspend fun deleteCategoryById(categoryId: Long)
 
     @Query("SELECT * FROM categories ORDER BY `order` ASC")
-    suspend fun getAllCategories(): List<Category>
+    fun getAllCategories(): Flow<List<Category>>
 
     // Add a method to insert multiple categories
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -40,4 +40,7 @@ interface CategoryDao {
             updateCategoryOrder(category.id, index)
         }
     }
+
+    @Query("SELECT * FROM categories WHERE id = :categoryId")
+    fun getCategoryById(categoryId: Long): Flow<Category?>
 }

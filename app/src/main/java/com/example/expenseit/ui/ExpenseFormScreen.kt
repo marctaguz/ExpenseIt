@@ -1,10 +1,9 @@
 package com.example.expenseit.ui
 
+import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
@@ -36,90 +32,81 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import com.example.expenseit.data.local.db.CategoryDao
-import com.example.expenseit.data.local.db.ExpenseDao
-import com.example.expenseit.data.local.entities.Category
-import com.example.expenseit.data.local.entities.Expense
+import com.example.expenseit.ui.components.CustomDateField
+import com.example.expenseit.ui.components.CustomNumberField
+import com.example.expenseit.ui.components.CustomTextField
+import com.example.expenseit.ui.components.DatePickerModal
 import com.example.expenseit.ui.components.PageHeader
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.expenseit.ui.viewmodels.CategoryViewModel
+import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, categoryDao: CategoryDao, expenseId: String?) {
+fun ExpenseFormScreen(
+    navController: NavController,
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
+    expenseId: String?
+) {
+    val context = LocalContext.current
+    val expense by expenseViewModel.expense.collectAsState()
+    val categories by categoryViewModel.categories.collectAsState()
+
     var title by rememberSaveable { mutableStateOf("") }
     var amount by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableStateOf("") }
+    var categoryId by rememberSaveable { mutableStateOf<Long>(0) } // Use categoryId
     var description by rememberSaveable { mutableStateOf("") }
-    var date by rememberSaveable { mutableStateOf<Long?>(System.currentTimeMillis()) }
+    var date by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var amountError by remember { mutableStateOf("") }
-    var showModal by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    var expense by remember { mutableStateOf<Expense?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
-    var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
 
-    // Date formatter
-    val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    val formattedDate = date?.let { dateFormatter.format(Date(it)) } ?: ""
+    val category by categoryViewModel.getCategoryById(categoryId)
+        .collectAsState(initial = null)
 
-    // Fetch categories from CategoryDao
-    LaunchedEffect(Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val fetchedCategories = categoryDao.getAllCategories()
-            withContext(Dispatchers.Main) {
-                categories = fetchedCategories
-            }
-        }
-    }
 
-    // Fetch the expense details if an ID is provided
     LaunchedEffect(expenseId) {
         if (expenseId != null) {
-            isLoading = true
-            CoroutineScope(Dispatchers.IO).launch {
-                expense = expenseDao.getExpenseById(expenseId.toLong())
-                withContext(Dispatchers.Main) {
-                    expense?.let {
-                        // If editing, populate the fields with the existing data
-                        title = it.title
-                        amount = it.amount.toString()
-                        if (category.isBlank()) {
-                            category = it.category
-                        }
-                        description = it.description
-                        date = it.date
-                    }
-                    isLoading = false
-                }
+            expenseViewModel.loadExpenseById(expenseId.toLong())
+        }
+    }
+
+    LaunchedEffect(expense) {
+        expense?.let {
+            if (expenseId != null) { // Ensure this only runs when editing
+                title = it.title
+                amount = it.amount.toString()
+                categoryId = it.categoryId // Use categoryId
+                description = it.description
+                date = it.date
             }
         }
     }
 
-    if (isLoading) {
-        Text(text = "Loading...", fontSize = 16.sp)
+    LaunchedEffect(Unit) {
+        navController.currentBackStackEntry?.savedStateHandle?.get<Long>("selectedCategoryId")?.let {
+            Log.d("ExpenseFormScreen", "Received selected category ID: $it")
+            categoryId = it
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Long>("selectedCategoryId")
+        }
     }
 
     Scaffold(
@@ -151,28 +138,22 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 .padding(paddingValues)
                 .padding(16.dp)) {
                 // Title field
-                OutlinedTextField(
+                CustomTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = "Title",
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Amount field
-                OutlinedTextField(
+                CustomNumberField(
                     value = amount,
                     onValueChange = {
-                        // Allow decimal input for amount with up to two decimal places
-                        if (it.isEmpty() || it.matches("^\\d*\\.?\\d{0,2}\$".toRegex())) {
-                            amount = it
-                            amountError = "" // Clear error when valid input is entered
-                        } else {
-                            amountError = "Amount must be a valid number with up to 2 decimal places"
-                        }
+                        amount = it
                     },
-                    label = { Text("Amount") },
-                    isError = amountError.isNotEmpty(),
+                    label = "Amount",
+                    isDecimal = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (amountError.isNotEmpty()) {
@@ -180,22 +161,23 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
+                //Category Field
                 val focusRequester = FocusRequester()
                 val interactionSource = remember { MutableInteractionSource() }
-                Box() {
-                    // OutlinedTextField for displaying the selected category
-                    OutlinedTextField(
-                        value = category,
+                Box {
+                    CustomTextField(
+                        value = category?.name ?: "Select Category",
                         onValueChange = { /* Do nothing, handled by dialog */ },
-                        label = { Text("Select Category") },
+                        label = "Select Category",
                         readOnly = true,
                         trailingIcon = {
                             Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Category")
+
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color.Transparent) // Ensure the background is transparent so the clickable Box is visible
-                            .focusRequester(focusRequester = focusRequester)
+                            .focusRequester(focusRequester)
                     )
 
                     Box(modifier = Modifier
@@ -203,7 +185,6 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                         .clickable(
                             onClick = {
                                 navController.navigate("category_list")
-//                                showCategoryDialog = true
                                 focusRequester.requestFocus()
                             },
                             interactionSource = interactionSource,
@@ -215,53 +196,39 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Description field
-                OutlinedTextField(
+                CustomTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    label = "Description",
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Date field
-                OutlinedTextField(
-                    value = formattedDate,
-                    onValueChange = { },
-                    label = { Text("Date") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showModal = true }) {
-                            Icon(imageVector = Icons.Default.DateRange, contentDescription = "Select Date")
-                        }
-                    },
+                CustomDateField(
+                    label = "Transaction Date",
+                    date = date,
+                    onDateSelected = { date = it },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                // Show the modal date picker
-                if (showModal) {
-                    DatePickerModal(
-                        onDateSelected = { selectedDate ->
-                            date = selectedDate
-                            showModal = false
-                        },
-                        onDismiss = { showModal = false }
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Save Button
                 Button(
                     onClick = {
-                        if (title.isNotEmpty() && amount.isNotEmpty() && category.isNotEmpty() && amountError.isEmpty()) {
+                        if (title.isNotEmpty() && amount.isNotEmpty() && categoryId != null && amountError.isEmpty()) {
+                            val parsedAmount = amount.toBigDecimal()
                             if (expenseId != null) {
                                 // Update existing expense
-                                updateExpense(expenseDao, expenseId.toLong(), title, amount, category, description, date!!) {
+                                expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, categoryId!!, description, date!!) {
                                     navController.popBackStack()
                                 }
                             } else {
                                 // Add new expense
-                                addExpense(expenseDao, title, amount, category, description, date!!) {
+                                expenseViewModel.addExpense(title, parsedAmount, categoryId!!, description,
+                                    date
+                                ) {
                                     navController.popBackStack()
                                 }
                             }
@@ -274,11 +241,6 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                     Text("Save Expense")
                 }
             }
-            // Observe NavBackStackEntry to get the selected category
-            navController.currentBackStackEntry?.savedStateHandle?.getLiveData<String>("selectedCategory")
-                ?.observe(LocalLifecycleOwner.current) { selectedCategory ->
-                    category = selectedCategory
-                }
         }
     )
     if (showDeleteConfirmationDialog) {
@@ -290,7 +252,7 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 TextButton(onClick = {
                     // Perform the deletion
                     if (expenseId != null) {
-                        deleteExpense(expenseDao, expenseId.toLong()) {
+                        expenseViewModel.deleteExpense(expenseId.toLong()) {
                             navController.popBackStack() // Navigate back after deletion
                         }
                     }
@@ -305,98 +267,5 @@ fun ExpenseFormScreen(navController: NavController, expenseDao: ExpenseDao, cate
                 }
             }
         )
-    }
-}
-
-// Function to update an existing expense
-private fun updateExpense(
-    expenseDao: ExpenseDao,
-    expenseId: Long,
-    title: String,
-    amount: String,
-    category: String,
-    description: String,
-    date: Long,
-    onSuccess: () -> Unit
-) {
-    val expense = Expense(
-        id = expenseId,
-        title = title,
-        amount = amount.toDouble(),
-        category = category,
-        description = description,
-        date = date
-    )
-    CoroutineScope(Dispatchers.IO).launch {
-        expenseDao.update(expense)
-        withContext(Dispatchers.Main) {
-            onSuccess()
-        }
-    }
-}
-
-private fun addExpense(
-    expenseDao: ExpenseDao,
-    title: String,
-    amount: String,
-    category: String,
-    description: String,
-    date: Long,
-    onSuccess: () -> Unit
-) {
-    val expense = Expense(
-        title = title,
-        amount = amount.toDouble(),
-        category = category,
-        description = description,
-        date = date
-    )
-
-    CoroutineScope(Dispatchers.IO).launch {
-        expenseDao.insert(expense)
-        withContext(Dispatchers.Main) {
-            onSuccess() // Call onSuccess on the main thread
-        }
-    }
-}
-
-private fun deleteExpense(
-    expenseDao: ExpenseDao,
-    expenseId: Long,
-    onSuccess: () -> Unit
-) {
-    CoroutineScope(Dispatchers.IO).launch {
-        expenseDao.deleteExpenseById(expenseId)
-        withContext(Dispatchers.Main) {
-            onSuccess()
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatePickerModal(
-    onDateSelected: (Long?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val datePickerState = rememberDatePickerState()
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onDateSelected(datePickerState.selectedDateMillis)
-                onDismiss()
-            }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    ) {
-        DatePicker(state = datePickerState)
     }
 }

@@ -1,7 +1,11 @@
 package com.example.expenseit.ui
 
 import SettingsScreen
+import android.util.Log
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -29,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,7 +40,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.expenseit.R
-import com.example.expenseit.data.local.db.ExpenseDatabase
+import com.example.expenseit.ui.viewmodels.CategoryViewModel
+import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.exyte.animatednavbar.AnimatedNavigationBar
 import com.exyte.animatednavbar.animation.balltrajectory.Parabolic
@@ -55,17 +59,20 @@ enum class NavigationBarItems(val iconRes: Int, val route: String) {
 }
 
 @Composable
-fun ExpenseTrackerApp() {
+fun ExpenseItApp(
+    expenseViewModel: ExpenseViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
+    receiptViewModel: ReceiptViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
-    val receiptViewModel: ReceiptViewModel = hiltViewModel()
-    val context = LocalContext.current
-    val expenseDao = ExpenseDatabase.getDatabase(context).expenseDao()
-    val categoryDao = ExpenseDatabase.getDatabase(context).categoryDao()
-    val navigationBarItems = remember { NavigationBarItems.values() }
+    val navigationBarItems = remember { NavigationBarItems.entries.toTypedArray() }
     var selectedIndex by rememberSaveable { mutableStateOf(0) }
+    var currentRoute by remember { mutableStateOf("expense_list") } // Track current route
 
     LaunchedEffect(navController) {
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            currentRoute = destination.route ?: "expense_list"
+
             // Get the index of the destination in the navigationBarItems list
             val newIndex = navigationBarItems.indexOfFirst { it.route == destination.route }
             if (newIndex >= 0) {
@@ -74,18 +81,21 @@ fun ExpenseTrackerApp() {
         }
     }
 
+    val hideBottomBarScreens = listOf("add_expense", "add_expense/{expenseId}", "category_list", "receipt_details/{receiptId}", "edit_category")
+
     Scaffold(
         floatingActionButton = {
-            Box() {
+            if (currentRoute !in hideBottomBarScreens) {  // Hide FAB on specific screens
                 FloatingActionButton(
                     onClick = {
                         navController.navigate("add_expense") {
-                        launchSingleTop = true
-                        restoreState = true}
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     },
                     shape = CircleShape,
                     modifier = Modifier
-                        .align(Alignment.Center)
+//                        .align(Alignment.Center)
                         .size(70.dp)
                         .offset(y = 70.dp)
                 ) {
@@ -95,54 +105,68 @@ fun ExpenseTrackerApp() {
         },
         floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
-            AnimatedNavigationBar(
-                modifier = Modifier.padding(16.dp).height(64.dp),
-                selectedIndex = selectedIndex,
-                cornerRadius = shapeCornerRadius(cornerRadius = 34.dp),
-                ballAnimation = Parabolic(tween(300)),
-                indentAnimation = Height(tween(300)),
-                barColor = MaterialTheme.colorScheme.primary,
-                ballColor = MaterialTheme.colorScheme.primary,
-            ) {
-                navigationBarItems.forEachIndexed { index, item ->
-                    if (index == 2) {
-                        //Spacer for FAB
-                        Spacer(Modifier.width(55.dp))
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .noRippleClickable {
-                                selectedIndex = item.ordinal
-                                navController.navigate(item.route) {
-                                    launchSingleTop = true
-                                    restoreState = true
+            if (currentRoute !in hideBottomBarScreens) { // Hide Bottom Bar on specific screens
+                AnimatedNavigationBar(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .height(64.dp),
+                    selectedIndex = selectedIndex,
+                    cornerRadius = shapeCornerRadius(cornerRadius = 34.dp),
+                    ballAnimation = Parabolic(tween(300)),
+                    indentAnimation = Height(tween(300)),
+                    barColor = MaterialTheme.colorScheme.primary,
+                    ballColor = MaterialTheme.colorScheme.primary,
+                ) {
+                    navigationBarItems.forEachIndexed { index, item ->
+                        if (index == 2) {
+                            //Spacer for FAB
+                            Spacer(Modifier.width(55.dp))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .noRippleClickable {
+                                    selectedIndex = item.ordinal
+                                    navController.navigate(item.route) {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = item.iconRes),
+                                modifier = Modifier.size(26.dp),
+                                contentDescription = "Bottom Bar Icon",
+                                colorFilter = if (selectedIndex <= 2 && selectedIndex == item.ordinal || selectedIndex > 2 && selectedIndex - 1 == item.ordinal) {
+                                    // Change color for selected icon
+                                    ColorFilter.tint(MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    // Change color for unselected icon
+                                    ColorFilter.tint(MaterialTheme.colorScheme.inversePrimary)
                                 }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = item.iconRes),
-                            modifier = Modifier.size(26.dp),
-                            contentDescription = "Bottom Bar Icon",
-                            colorFilter = if (selectedIndex <= 2 && selectedIndex == item.ordinal || selectedIndex > 2 && selectedIndex - 1 == item.ordinal) {
-                                // Change color for selected icon
-                                ColorFilter.tint(MaterialTheme.colorScheme.onPrimary)
-                            } else {
-                                // Change color for unselected icon
-                                ColorFilter.tint(MaterialTheme.colorScheme.inversePrimary)
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
         },
     ) { innerPadding ->
-        val contentModifier = Modifier.padding(innerPadding).padding(all = 12.dp)
+        val contentModifier = Modifier
+            .padding(innerPadding)
+            .padding(all = 12.dp)
 
-        NavHost(navController = navController, startDestination = "expense_list", Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = "expense_list",
+            Modifier.fillMaxSize(),
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) },
+        ) {
             composable("expense_list") {
-                ExpenseListScreen(navController = navController, expenseDao = expenseDao, modifier = contentModifier)
+                ExpenseListScreen(navController = navController, expenseViewModel = expenseViewModel, modifier = contentModifier)
             }
             composable("receipt_scan") {
                 ReceiptScanScreen(navController = navController, modifier = contentModifier)
@@ -154,17 +178,25 @@ fun ExpenseTrackerApp() {
                 SettingsScreen(navController = navController, modifier = contentModifier)
             }
             composable("add_expense") {
-                ExpenseFormScreen(navController = navController, expenseDao = expenseDao, categoryDao = categoryDao, expenseId = null)
+                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = null)
             }
             composable("add_expense/{expenseId}") { backStackEntry ->
                 val expenseId = backStackEntry.arguments?.getString("expenseId")
-                ExpenseFormScreen(navController = navController, expenseDao = expenseDao, categoryDao = categoryDao, expenseId = expenseId)
+                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = expenseId)
             }
             composable("category_list") {
-                CategoryListScreen(navController = navController, categoryDao = categoryDao)
+                CategoryListScreen(navController = navController, categoryViewModel = categoryViewModel)
             }
-            composable("receipt_result") {
-                ReceiptResultScreen(navController = navController, viewModel = receiptViewModel)
+            composable("receipt_details/{receiptId}") {
+                val receiptId = it.arguments?.getString("receiptId")?.toIntOrNull()
+                if (receiptId != null) {
+                    ReceiptDetailsScreen(navController = navController, receiptId = receiptId)
+                } else {
+                    Log.d("ExpenseItApp", "ReceiptId is null")
+                }
+            }
+            composable("edit_category") {
+                EditCategoriesScreen(navController = navController)
             }
         }
     }
