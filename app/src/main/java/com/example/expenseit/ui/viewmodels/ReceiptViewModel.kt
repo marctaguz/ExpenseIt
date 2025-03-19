@@ -1,10 +1,13 @@
 package com.example.expenseit.ui.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
+import coil.Coil
+import coil.request.ImageRequest
 import com.example.expenseit.data.local.db.ReceiptDao
 import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.data.local.entities.Receipt
@@ -31,6 +34,17 @@ class ReceiptViewModel @Inject constructor(
         viewModelScope.launch {
             val allReceipts = receiptDao.getAllReceipts()
             _receipts.value = allReceipts
+        }
+    }
+
+    fun preloadImages(context: Context, receipts: List<Receipt>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            receipts.forEach { receipt ->
+                val request = ImageRequest.Builder(context)
+                    .data(receipt.imageUrl)
+                    .build()
+                Coil.imageLoader(context).enqueue(request) // Use the default ImageLoader
+            }
         }
     }
 

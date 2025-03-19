@@ -2,9 +2,17 @@ package com.example.expenseit.ui
 
 import SettingsScreen
 import android.util.Log
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -126,16 +134,25 @@ fun ExpenseItApp() {
         NavHost(
             navController = navController,
             startDestination = "expense_list",
-            Modifier.fillMaxSize(),
-            enterTransition = { fadeIn(animationSpec = tween(300)) },
-            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
             popEnterTransition = { fadeIn(animationSpec = tween(300)) },
             popExitTransition = { fadeOut(animationSpec = tween(300)) },
         ) {
             composable("expense_list") {
                 ExpenseListScreen(navController = navController, modifier = contentModifier)
             }
-            composable("receipt_scan") {
+            composable(
+                route = "receipt_scan",
+                popEnterTransition = {
+                    // Slide in from the left when returning from ReceiptDetailsScreen
+                    slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = tween(durationMillis = 300)
+                    )
+                }
+            ) {
                 ReceiptScanScreen(navController = navController, modifier = contentModifier)
             }
             composable("expense_stats") {
@@ -154,7 +171,22 @@ fun ExpenseItApp() {
             composable("category_list") {
                 CategoryListScreen(navController = navController)
             }
-            composable("receipt_details/{receiptId}") {
+            composable(
+                route = "receipt_details/{receiptId}",
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(durationMillis = 300)
+                    ) + fadeIn(animationSpec = tween(300, easing = LinearEasing))
+                },
+                exitTransition = {
+                    // Slide out to the right when returning to ReceiptScanScreen
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(durationMillis = 300)
+                    )
+                },
+            ) {
                 val receiptId = it.arguments?.getString("receiptId")?.toIntOrNull()
                 if (receiptId != null) {
                     ReceiptDetailsScreen(navController = navController, receiptId = receiptId)

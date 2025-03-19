@@ -96,6 +96,7 @@ fun ReceiptScanScreen(navController: NavController,
 
     val receipts by receiptViewModel.receipts.collectAsState()
     val activity = LocalActivity.current
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val receiptApiClient = remember { ReceiptApiClient() }
     val scanner = remember { GmsDocumentScanning.getClient(options) }
@@ -108,6 +109,13 @@ fun ReceiptScanScreen(navController: NavController,
         snackbarMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
             snackbarMessage = null
+        }
+    }
+
+    // Preload images when the list of receipts is available
+    LaunchedEffect(receipts) {
+        if (receipts.isNotEmpty()) {
+            receiptViewModel.preloadImages(context, receipts)
         }
     }
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -55,7 +56,19 @@ fun ExpenseListScreen(
     }
 
     Scaffold(
-        modifier = modifier,
+        topBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(top = 16.dp),
+            ) {
+                Image(painter = painterResource(id = R.drawable.expenseit_logo),
+                    modifier = Modifier.size(26.dp),
+                    contentDescription = null)
+                Text(text = "ExpenseIt", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -74,16 +87,8 @@ fun ExpenseListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            Row {
-                Image(painter = painterResource(id = R.drawable.expenseit_logo),
-                    modifier = Modifier.size(26.dp),
-                    contentDescription = null)
-                Text(text = "ExpenseIt", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
             if (expenses.isEmpty()) {
                 Column(
                     modifier = Modifier

@@ -40,12 +40,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.expenseit.R
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.components.CustomDateField
@@ -189,7 +192,10 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                         ) {
                             if (rec.imageUrl.isNotEmpty()) {
                                 AsyncImage(
-                                    model = rec.imageUrl,
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(rec.imageUrl)
+                                        .placeholder(R.drawable.placeholder_image)
+                                        .build(),
                                     contentDescription = "Receipt Image",
                                     modifier = Modifier
                                         .fillMaxWidth()

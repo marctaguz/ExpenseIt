@@ -31,12 +31,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.expenseit.R
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.utils.DateUtils
 import com.exyte.animatednavbar.utils.noRippleClickable
@@ -88,7 +91,10 @@ fun ReceiptListItem(receipt: Receipt, navController: NavController) {
                 .border(2.dp, Color.LightGray, RoundedCornerShape(8.dp))
         ) {
             AsyncImage(
-                model = receipt.imageUrl,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(receipt.imageUrl)
+                    .placeholder(R.drawable.placeholder_image)
+                    .build(),
                 contentDescription = "Receipt Image",
                 modifier = Modifier
                     .fillMaxSize(),
