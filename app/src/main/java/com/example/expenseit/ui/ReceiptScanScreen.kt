@@ -8,24 +8,33 @@ import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +56,7 @@ import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.components.ReceiptCard
+import com.example.expenseit.ui.components.ReceiptListItem
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.example.expenseit.utils.DateUtils
 import com.example.expenseit.utils.FirebaseUtils
@@ -88,11 +99,23 @@ fun ReceiptScanScreen(navController: NavController,
     val coroutineScope = rememberCoroutineScope()
     val receiptApiClient = remember { ReceiptApiClient() }
     val scanner = remember { GmsDocumentScanning.getClient(options) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    var snackbarMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(snackbarMessage) {
+        snackbarMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            snackbarMessage = null
+        }
+    }
 
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
         onResult = { result ->
             if (result.resultCode == RESULT_OK) {
+                isLoading = true
                 val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
                 scanResult?.pages?.forEach { page ->
                     coroutineScope.launch {
@@ -105,11 +128,15 @@ fun ReceiptScanScreen(navController: NavController,
                                     parsedReceipt?.let { (receipt, items) ->
                                         val newReceipt = receipt.copy(imageUrl = downloadUrl)
                                         receiptViewModel.insertReceipt(newReceipt, items)
+                                        snackbarMessage = "Receipt added successfully!"
                                     }
                                 }
                             }
                         } catch (e: Exception) {
                             Log.e("ReceiptScanScreen", "Error processing receipt", e)
+                            snackbarMessage = "Failed to process receipt. Please try again."
+                        } finally {
+                            isLoading = false
                         }
                     }
                 }
@@ -117,10 +144,13 @@ fun ReceiptScanScreen(navController: NavController,
         }
     )
 
+
+
     Scaffold(
         topBar = {
             PageHeader(title = "Receipt Scan Screen", actionButtonVisible = false)
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
@@ -146,20 +176,67 @@ fun ReceiptScanScreen(navController: NavController,
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .fillMaxSize()
+                    .padding(16.dp)
+                    .fillMaxWidth()
             ) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.padding(8.dp)
+
+                Card(
+                    modifier = Modifier,
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.padding(vertical = 8.dp)
                     ) {
-                        items(receipts) { receipt ->
-                            ReceiptCard(receipt = receipt, navController = navController)
+                        items(receipts.size) { index ->
+                            val receipt = receipts[index]
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(animationSpec = tween(durationMillis = 500)),
+                                exit = fadeOut(animationSpec = tween(durationMillis = 500))
+                            ) {
+                                ReceiptListItem(receipt = receipt, navController = navController)
+                            }
+                            if (index < receipts.size - 1) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    color = Color(0xFFE5E7EB)
+                                )
+                            }
+                        }
+                    }
+
+                    if (receipts.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No receipts found. Scan a receipt to get started!",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
                         }
                     }
                 }
 
-
+            }
         }
     )
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    }
 }
+
+
 

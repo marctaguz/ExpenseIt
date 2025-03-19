@@ -353,7 +353,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                 AsyncImage(
                     model = receipt?.imageUrl,
                     contentDescription = "Full Screen Receipt",
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxWidth(),
                     alignment = Alignment.Center
                 )
             }

@@ -67,7 +67,7 @@ fun ExpenseItApp() {
             // Get the index of the destination in the navigationBarItems list
             val newIndex = navigationBarItems.indexOfFirst { it.route == destination.route }
             if (newIndex >= 0) {
-                selectedIndex = if (newIndex >= 2) newIndex + 1 else newIndex
+                selectedIndex = newIndex
             }
         }
     }
@@ -75,26 +75,6 @@ fun ExpenseItApp() {
     val hideBottomBarScreens = listOf("add_expense", "add_expense/{expenseId}", "category_list", "receipt_details/{receiptId}", "edit_category")
 
     Scaffold(
-        floatingActionButton = {
-            if (currentRoute !in hideBottomBarScreens) {  // Hide FAB on specific screens
-                FloatingActionButton(
-                    onClick = {
-                        navController.navigate("add_expense") {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    shape = CircleShape,
-                    modifier = Modifier
-//                        .align(Alignment.Center)
-                        .size(70.dp)
-                        .offset(y = 70.dp)
-                ) {
-                    Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Expense")
-                }
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
             if (currentRoute !in hideBottomBarScreens) { // Hide Bottom Bar on specific screens
                 AnimatedNavigationBar(
@@ -109,10 +89,6 @@ fun ExpenseItApp() {
                     ballColor = MaterialTheme.colorScheme.primary,
                 ) {
                     navigationBarItems.forEachIndexed { index, item ->
-                        if (index == 2) {
-                            //Spacer for FAB
-                            Spacer(Modifier.width(55.dp))
-                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -129,7 +105,7 @@ fun ExpenseItApp() {
                                 painter = painterResource(id = item.iconRes),
                                 modifier = Modifier.size(26.dp),
                                 contentDescription = "Bottom Bar Icon",
-                                colorFilter = if (selectedIndex <= 2 && selectedIndex == item.ordinal || selectedIndex > 2 && selectedIndex - 1 == item.ordinal) {
+                                colorFilter = if (selectedIndex == item.ordinal) {
                                     // Change color for selected icon
                                     ColorFilter.tint(MaterialTheme.colorScheme.onPrimary)
                                 } else {

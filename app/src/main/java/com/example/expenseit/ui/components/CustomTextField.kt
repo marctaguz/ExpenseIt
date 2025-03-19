@@ -37,6 +37,8 @@ fun CustomTextField(
             onValueChange = {
                 onValueChange(it)
             },
+            maxLines = 1,
+            singleLine = true,
             modifier = modifier,
             readOnly = readOnly,
             shape = RoundedCornerShape(8.dp),

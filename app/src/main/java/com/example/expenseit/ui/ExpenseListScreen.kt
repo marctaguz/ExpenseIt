@@ -10,7 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +47,7 @@ fun ExpenseListScreen(
     val categories by categoryViewModel.categories.collectAsState()
 
     val groupedExpenses = expenses.groupBy { expense ->
-        SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(expense.date)
+        SimpleDateFormat("MMM dd,yyyy", Locale.getDefault()).format(expense.date)
     }
 
     LaunchedEffect(Unit) {
@@ -51,7 +55,20 @@ fun ExpenseListScreen(
     }
 
     Scaffold(
-        modifier = modifier
+        modifier = modifier,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate("add_expense") {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
+            {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Expense")
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -104,12 +121,12 @@ fun ExpenseListScreen(
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Light,
                                 color = PurpleGrey40,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                                modifier = Modifier.padding(top = 12.dp)
                             )
                         }
                         // Expense items for this date
                         items(expensesForDate) { expense ->
-                            ExpenseItem(expense = expense, categories = categories, onClick = {
+                            ExpenseItem(expense = expense, categoryViewModel = categoryViewModel, onClick = {
                                 navController.navigate("add_expense/${expense.id}")
                             })
                         }
