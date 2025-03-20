@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -65,8 +66,8 @@ enum class NavigationBarItems(val iconRes: Int, val route: String) {
 fun ExpenseItApp() {
     val navController = rememberNavController()
     val navigationBarItems = remember { NavigationBarItems.entries.toTypedArray() }
-    var selectedIndex by rememberSaveable { mutableStateOf(0) }
-    var currentRoute by remember { mutableStateOf("expense_list") } // Track current route
+    var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
+    var currentRoute by remember { mutableStateOf("expense_list") }
 
     LaunchedEffect(navController) {
         navController.addOnDestinationChangedListener { _, destination, _ ->
@@ -81,6 +82,7 @@ fun ExpenseItApp() {
     }
 
     val hideBottomBarScreens = listOf("add_expense", "add_expense/{expenseId}", "category_list", "receipt_details/{receiptId}", "edit_category")
+    val scrollToTop = remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -101,11 +103,24 @@ fun ExpenseItApp() {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .noRippleClickable {
-                                    selectedIndex = item.ordinal
-                                    navController.navigate(item.route) {
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    if (currentRoute != item.route) {
+                                        selectedIndex = item.ordinal
+                                        navController.navigate(item.route) {
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    } else {
+                                        when (item.route) {
+                                            "expense_list" -> {
+                                                scrollToTop.value = true
+                                            }
+
+                                            "receipt_scan" -> {
+
+                                            }
+                                        }
                                     }
+
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -141,19 +156,28 @@ fun ExpenseItApp() {
             popExitTransition = { fadeOut(animationSpec = tween(300)) },
         ) {
             composable("expense_list") {
-                ExpenseListScreen(navController = navController, modifier = contentModifier)
+                ExpenseListScreen(
+                    navController = navController,
+                    modifier = contentModifier,
+                    scrollToTop = scrollToTop.value,
+                    onScrollToTopCompleted = { scrollToTop.value = false }
+                )
             }
             composable(
                 route = "receipt_scan",
                 popEnterTransition = {
-                    // Slide in from the left when returning from ReceiptDetailsScreen
                     slideInHorizontally(
                         initialOffsetX = { -it },
                         animationSpec = tween(durationMillis = 300)
                     )
                 }
             ) {
-                ReceiptScanScreen(navController = navController, modifier = contentModifier)
+                ReceiptScanScreen(
+                    navController = navController,
+                    modifier = contentModifier,
+                    scrollToTop = scrollToTop.value,
+                    onScrollToTopCompleted = { scrollToTop.value = false }
+                )
             }
             composable("expense_stats") {
                 ExpenseStatsScreen(navController = navController, modifier = contentModifier)

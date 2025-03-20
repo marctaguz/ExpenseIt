@@ -1,5 +1,6 @@
 package com.example.expenseit.ui
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
@@ -43,7 +45,10 @@ fun ExpenseListScreen(
     expenseViewModel: ExpenseViewModel = hiltViewModel(),
     categoryViewModel: CategoryViewModel = hiltViewModel(),
     modifier: Modifier,
+    scrollToTop: Boolean,
+    onScrollToTopCompleted: () -> Unit
 ) {
+    val lazyListState = rememberLazyListState()
     val expenses by expenseViewModel.expenses.collectAsState()
     val categories by categoryViewModel.categories.collectAsState()
 
@@ -53,6 +58,16 @@ fun ExpenseListScreen(
 
     LaunchedEffect(Unit) {
         categoryViewModel.loadCategories()
+    }
+
+    LaunchedEffect(scrollToTop) {
+        if (scrollToTop) {
+            lazyListState.animateScrollToItem(
+                index = 0,
+                scrollOffset = 0
+            )
+            onScrollToTopCompleted()
+        }
     }
 
     Scaffold(
@@ -119,7 +134,9 @@ fun ExpenseListScreen(
                 }
             } else {
                 LazyColumn(
+                    state = lazyListState,
                     modifier = Modifier.fillMaxSize()
+                        .padding(bottom = 100.dp)
                 ) {
                     groupedExpenses.forEach { (date, expensesForDate) ->
                         // Date Header
@@ -138,6 +155,9 @@ fun ExpenseListScreen(
                                 navController.navigate("add_expense/${expense.id}")
                             })
                         }
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(100.dp))
                     }
                 }
             }

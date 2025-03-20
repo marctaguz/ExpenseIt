@@ -406,7 +406,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             dismissButton = {
                 Button(onClick = {
                     showExpenseDialog = false
-                    navController.navigate("select_expense_items/$receiptId")
+                    //TODO
                 }) {
                     Text("Select Items")
                 }
