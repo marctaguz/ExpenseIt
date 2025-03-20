@@ -111,6 +111,9 @@ dependencies {
     implementation(libs.vico.compose.m3)
     implementation(libs.androidchart)
     implementation(libs.reorderable)
+
+    implementation(libs.core)
+
 }
 
 // Allow references to generated code

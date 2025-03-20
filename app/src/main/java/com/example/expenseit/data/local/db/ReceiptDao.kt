@@ -3,6 +3,7 @@ package com.example.expenseit.data.local.db
 import androidx.room.*
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
+import com.example.expenseit.data.local.entities.ReceiptWithItems
 
 @Dao
 interface ReceiptDao {
@@ -36,5 +37,13 @@ interface ReceiptDao {
 
     @Query("DELETE FROM receipts WHERE id = :receiptId")
     suspend fun deleteReceiptById(receiptId: Int)
+
+    @Transaction
+    @Query("SELECT * FROM receipts")
+    suspend fun getReceiptsWithItems(): List<ReceiptWithItems>
+
+    @Transaction
+    @Query("SELECT * FROM receipts WHERE id = :receiptId")
+    suspend fun getReceiptWithItems(receiptId: Int): ReceiptWithItems?
 }
 

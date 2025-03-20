@@ -10,11 +10,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -47,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.components.ReceiptListItem
+import com.example.expenseit.ui.theme.primaryLight
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.example.expenseit.utils.FirebaseUtils
 import com.example.expenseit.utils.ReceiptApiClient
@@ -61,7 +64,7 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-fun ReceiptScanScreen(
+fun ReceiptListScreen(
     navController: NavController,
     receiptViewModel: ReceiptViewModel = hiltViewModel(),
     modifier: Modifier,
@@ -85,10 +88,14 @@ fun ReceiptScanScreen(
     val coroutineScope = rememberCoroutineScope()
     val receiptApiClient = remember { ReceiptApiClient() }
     val scanner = remember { GmsDocumentScanning.getClient(options) }
-    var isLoading by remember { mutableStateOf(false) }
+    val isLoading by receiptViewModel.isLoading.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        receiptViewModel.loadAllReceipts()
+    }
 
     LaunchedEffect(scrollToTop) {
         if (scrollToTop) {
@@ -118,7 +125,7 @@ fun ReceiptScanScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
         onResult = { result ->
             if (result.resultCode == RESULT_OK) {
-                isLoading = true
+//                isLoading = true
                 val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
                 scanResult?.pages?.forEach { page ->
                     coroutineScope.launch {
@@ -139,15 +146,13 @@ fun ReceiptScanScreen(
                             Log.e("ReceiptScanScreen", "Error processing receipt", e)
                             snackbarMessage = "Failed to process receipt. Please try again."
                         } finally {
-                            isLoading = false
+//                            isLoading = false
                         }
                     }
                 }
             }
         }
     )
-
-
 
     Scaffold(
         topBar = {
@@ -176,70 +181,75 @@ fun ReceiptScanScreen(
             }
         },
         content = { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            ) {
-
-                Card(
-                    modifier = Modifier,
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .padding(16.dp)
+                        .fillMaxWidth()
                 ) {
-                    LazyColumn(
-                        state = lazyListState,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                    Card(
+                        modifier = Modifier,
+                        elevation = CardDefaults.cardElevation(1.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
-                        items(receipts.size) { index ->
-                            val receipt = receipts[index]
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-                                exit = fadeOut(animationSpec = tween(durationMillis = 500))
-                            ) {
-                                ReceiptListItem(receipt = receipt, navController = navController)
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            items(receipts.size) { index ->
+                                val receipt = receipts[index]
+                                AnimatedVisibility(
+                                    visible = true,
+                                    enter = fadeIn(animationSpec = tween(durationMillis = 500)),
+                                    exit = fadeOut(animationSpec = tween(durationMillis = 500))
+                                ) {
+                                    ReceiptListItem(
+                                        receipt = receipt,
+                                        navController = navController
+                                    )
+                                }
+                                if (index < receipts.size - 1) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                        color = Color(0xFFE5E7EB)
+                                    )
+                                }
                             }
-                            if (index < receipts.size - 1) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 4.dp),
-                                    color = Color(0xFFE5E7EB)
+                        }
+
+                        if (receipts.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No receipts found. Scan a receipt to get started!",
+                                    color = Color.Gray,
+                                    fontSize = 16.sp
                                 )
                             }
                         }
                     }
-
-                    if (receipts.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No receipts found. Scan a receipt to get started!",
-                                color = Color.Gray,
-                                fontSize = 16.sp
-                            )
-                        }
-                    }
                 }
-
+//                if (isLoading) {
+//                    Box(
+//                        Modifier.fillMaxSize()
+//                            .background(Color.Gray.copy(alpha = 0.5f))
+//                    ) {
+//                        CircularProgressIndicator(
+//                            modifier = Modifier
+//                                .align(Alignment.Center)
+//                                .size(48.dp),
+//                            color = primaryLight
+//                        )
+//                    }
+//                }
             }
         }
     )
-
-    if (isLoading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
-    }
 }
 
 

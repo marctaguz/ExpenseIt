@@ -135,11 +135,6 @@ fun ReceiptListItem(receipt: Receipt, navController: NavController) {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-//            Icon(
-//                imageVector = Icons.Default.Check,
-//                contentDescription = "Status",
-//                tint = Color.Green
-//            )
             Spacer(modifier = Modifier.width(4.dp))
 
             Icon(
