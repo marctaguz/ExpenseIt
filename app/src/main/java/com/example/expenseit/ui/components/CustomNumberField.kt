@@ -20,10 +20,11 @@ fun CustomNumberField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    isDecimal: Boolean = false
+    isDecimal: Boolean = false,
+    showError: Boolean = false
 ) {
     val isValid = value.isNotEmpty() && value != "." // Ensure input is valid
-    val textColor = if (isValid) Color(0xFF374151) else Color.Red
+    val textColor = if (isValid || !showError) Color(0xFF374151) else Color.Red // Only show red if showError is true
 
     Column(modifier = weightModifier) {
         Text(
@@ -55,8 +56,8 @@ fun CustomNumberField(
                 keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
             ),
             colors = TextFieldDefaults.colors().copy(
-                unfocusedIndicatorColor = if (isValid) Color(0xFFE5E7EB) else Color.Red,
-                focusedIndicatorColor = if (isValid) Color(0xFF015FCC) else Color.Red,
+                unfocusedIndicatorColor = if (isValid || !showError) Color(0xFFE5E7EB) else Color.Red, // Only show red if showError is true
+                focusedIndicatorColor = if (isValid || !showError) Color(0xFF015FCC) else Color.Red,  // Only show red if showError is true
                 unfocusedContainerColor = White,
                 focusedContainerColor = White
             )

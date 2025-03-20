@@ -77,6 +77,7 @@ fun ExpenseListScreen(
                         restoreState = true
                     }
                 },
+                modifier = Modifier.padding(bottom = 100.dp)
             )
             {
                 Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Expense")
@@ -117,7 +118,9 @@ fun ExpenseListScreen(
                     }
                 }
             } else {
-                LazyColumn {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     groupedExpenses.forEach { (date, expensesForDate) ->
                         // Date Header
                         item {
@@ -139,7 +142,6 @@ fun ExpenseListScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
