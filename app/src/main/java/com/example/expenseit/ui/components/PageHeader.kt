@@ -1,10 +1,13 @@
 package com.example.expenseit.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -25,28 +28,59 @@ import com.example.expenseit.ui.theme.displayFontFamily
 @Composable
 fun PageHeader(
     title: String,
-    actionButtonVisible: Boolean,
-    onClose: () -> Unit = {}
+    leftActionButtonVisible: Boolean = false,
+    rightActionButtonVisible: Boolean = false,
+    onLeftAction: () -> Unit = {},
+    onRightAction: () -> Unit = {},
+    leftActionIcon: @Composable () -> Unit = {
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Close",
+            tint = Color.White
+        )
+    },
+    rightActionIcon: @Composable () -> Unit = {
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Close",
+            tint = Color.White
+        )
+    }
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.primary)
             .height(75.dp)
-            .padding(0.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        if (actionButtonVisible) {
-            IconButton(onClick = onClose) {
-                Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+        if (leftActionButtonVisible) {
+            IconButton(onClick = onLeftAction) {
+                leftActionIcon()
             }
+        } else {
+            Spacer(modifier = Modifier.size(48.dp))
         }
+
+        // Title (always centered)
         Text(
             text = title,
             color = Color.White,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = if (actionButtonVisible) 0.dp else 16.dp),
-            )
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f) // Take up remaining space
+        )
+
+        // Right Action Button
+        if (rightActionButtonVisible) {
+            IconButton(onClick = onRightAction) {
+                rightActionIcon()
+            }
+        } else {
+            Spacer(modifier = Modifier.size(48.dp))
+        }
     }
 }

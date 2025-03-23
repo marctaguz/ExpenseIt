@@ -13,20 +13,25 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -41,14 +46,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.expenseit.R
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.components.ReceiptListItem
+import com.example.expenseit.ui.theme.backgroundLight
 import com.example.expenseit.ui.theme.primaryLight
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.example.expenseit.utils.FirebaseUtils
@@ -72,6 +81,8 @@ fun ReceiptListScreen(
     onScrollToTopCompleted: () -> Unit
 ) {
     val lazyListState = rememberLazyListState()
+    val headerHeight = 160.dp
+    val overlapHeight = 86.dp
 
     val options = remember {
         GmsDocumentScannerOptions.Builder()
@@ -125,7 +136,6 @@ fun ReceiptListScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
         onResult = { result ->
             if (result.resultCode == RESULT_OK) {
-//                isLoading = true
                 val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
                 scanResult?.pages?.forEach { page ->
                     coroutineScope.launch {
@@ -145,8 +155,6 @@ fun ReceiptListScreen(
                         } catch (e: Exception) {
                             Log.e("ReceiptScanScreen", "Error processing receipt", e)
                             snackbarMessage = "Failed to process receipt. Please try again."
-                        } finally {
-//                            isLoading = false
                         }
                     }
                 }
@@ -155,12 +163,9 @@ fun ReceiptListScreen(
     )
 
     Scaffold(
-        topBar = {
-            PageHeader(title = "Receipt Scan Screen", actionButtonVisible = false)
-        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            FloatingActionButton(
                 onClick = {
                     // Safely unwrap the activity
                     activity?.let { nonNullActivity ->
@@ -174,22 +179,38 @@ fun ReceiptListScreen(
                         // Handle the case where the activity is null
                         Log.e("ReceiptScanScreen", "Activity is null")
                     }
-            },
-                modifier = Modifier.padding(bottom = 100.dp)) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Scan Receipt")
-                Text(text = "Scan Receipt")
+                },
+                modifier = Modifier.padding(bottom = 100.dp)
+            ) {
+                Icon(painter = painterResource(R.drawable.ic_add_photo), contentDescription = "Scan Receipt")
             }
         },
         content = { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
+                // Header
                 Column(
                     modifier = Modifier
                         .padding(innerPadding)
-                        .padding(16.dp)
                         .fillMaxWidth()
+                        .height(headerHeight)
+                        .background(MaterialTheme.colorScheme.primary)
                 ) {
+                    PageHeader(title = "Receipts")
+                }
+
+                // Content
+                Card(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = headerHeight - overlapHeight)
+                        .clip(RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp)),
+                    colors = CardDefaults.cardColors(backgroundLight),
+                    elevation = CardDefaults.cardElevation(1.dp)
+                ) {
+                    Spacer(Modifier.height(8.dp))
+
                     Card(
-                        modifier = Modifier,
+                        modifier = Modifier.padding(16.dp),
                         elevation = CardDefaults.cardElevation(1.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
@@ -217,40 +238,26 @@ fun ReceiptListScreen(
                                 }
                             }
                         }
+                    }
 
-                        if (receipts.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No receipts found. Scan a receipt to get started!",
-                                    color = Color.Gray,
-                                    fontSize = 16.sp
-                                )
-                            }
+                    if (receipts.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No receipts found. Scan a receipt to get started!",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
                         }
                     }
                 }
-//                if (isLoading) {
-//                    Box(
-//                        Modifier.fillMaxSize()
-//                            .background(Color.Gray.copy(alpha = 0.5f))
-//                    ) {
-//                        CircularProgressIndicator(
-//                            modifier = Modifier
-//                                .align(Alignment.Center)
-//                                .size(48.dp),
-//                            color = primaryLight
-//                        )
-//                    }
-//                }
             }
         }
     )
 }
-
 
 

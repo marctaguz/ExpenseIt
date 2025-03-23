@@ -45,8 +45,8 @@ fun CategoryListScreen(
             ) {
                 PageHeader(
                     title = "Select Category",
-                    actionButtonVisible = true,
-                    onClose = { navController.popBackStack() }
+                    leftActionButtonVisible = true,
+                    onLeftAction = { navController.popBackStack() }
                 )
             }
         },

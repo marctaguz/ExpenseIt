@@ -91,8 +91,8 @@ fun EditCategoriesScreen(
             Box(modifier = Modifier.fillMaxWidth()) {
                 PageHeader(
                     title = "Edit Categories",
-                    actionButtonVisible = true,
-                    onClose = {
+                    leftActionButtonVisible = true,
+                    onLeftAction = {
                         categoryViewModel.updateCategoryOrder(localCategories)
                         navController.popBackStack()
                     }

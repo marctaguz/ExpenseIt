@@ -1,6 +1,5 @@
 package com.example.expenseit.ui
 
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
@@ -19,33 +18,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -60,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
@@ -137,8 +126,8 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             ) {
                 PageHeader(
                     title = "Receipt Details",
-                    actionButtonVisible = true,
-                    onClose = {
+                    leftActionButtonVisible = true,
+                    onLeftAction = {
                         if (hasChanges()) {
                             showConfirmDialog = true
                         } else {
@@ -146,19 +135,6 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                         }
                     }
                 )
-
-//                IconButton(
-//                    onClick = { isDropdownExpanded = true },
-//                    modifier = Modifier
-//                        .align(Alignment.CenterEnd)
-//                        .padding(end = 16.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.MoreVert,
-//                        contentDescription = "More Options",
-//                        tint = Color.White
-//                    )
-//                }
                 Menu(state, modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 16.dp)) {
@@ -213,43 +189,6 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                     }
 
                 }
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 56.dp, end = 16.dp) // Adjust padding as needed
-                ) {
-
-
-//                    DropdownMenu(
-//                        expanded = isDropdownExpanded,
-//                        onDismissRequest = { isDropdownExpanded = false }
-//                    ) {
-//                        DropdownMenuItem(
-//                            text = { Text("Rescan") },
-//                            onClick = {
-//                                isDropdownExpanded = false
-//                                // Implement Rescan functionality
-//                            }
-//                        )
-//                        DropdownMenuItem(
-//                            text = { Text("Create Expense") },
-//                            onClick = {
-//                                isDropdownExpanded = false
-//                                showExpenseDialog = true
-//                            }
-//                        )
-//                        DropdownMenuItem(
-//                            text = { Text("Delete") },
-//                            onClick = {
-//                                isDropdownExpanded = false
-//                                showDeleteDialog = true
-//                            }
-//                        )
-//                    }
-                }
-                // Dropdown Menu
-
             }
         },
         floatingActionButton = {

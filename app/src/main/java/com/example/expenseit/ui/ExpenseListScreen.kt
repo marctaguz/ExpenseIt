@@ -2,6 +2,7 @@ package com.example.expenseit.ui
 
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -77,6 +78,7 @@ fun ExpenseListScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
                     .padding(top = 16.dp),
+                horizontalArrangement = Arrangement.Center
             ) {
                 Image(painter = painterResource(id = R.drawable.expenseit_logo),
                     modifier = Modifier.size(26.dp),
