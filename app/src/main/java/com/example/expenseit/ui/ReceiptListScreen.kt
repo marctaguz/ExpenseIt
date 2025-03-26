@@ -93,6 +93,7 @@ fun ReceiptListScreen(
             .build()
     }
 
+    val receiptsWithItems by receiptViewModel.receiptsWithItems.collectAsState()
     val receipts by receiptViewModel.receipts.collectAsState()
     val activity = LocalActivity.current
     val context = LocalContext.current
@@ -143,14 +144,19 @@ fun ReceiptListScreen(
                             val downloadUrl = FirebaseUtils.uploadImageToFirebase(page.imageUri)
                             if (downloadUrl != null) {
                                 val receiptData = receiptApiClient.uploadReceipt(downloadUrl)
-                                receiptData?.let { data ->
-                                    val parsedReceipt = ReceiptParser.parseReceiptData(data)
-                                    parsedReceipt?.let { (receipt, items) ->
-                                        val newReceipt = receipt.copy(imageUrl = downloadUrl)
-                                        receiptViewModel.insertReceipt(newReceipt, items)
-                                        snackbarMessage = "Receipt added successfully!"
+                                if (receiptData != null) {
+                                    receiptData.let { data ->
+                                        val parsedReceipt = ReceiptParser.parseReceiptData(data)
+                                        parsedReceipt?.let { (receipt, items) ->
+                                            val newReceipt = receipt.copy(imageUrl = downloadUrl)
+                                            receiptViewModel.insertReceipt(newReceipt, items)
+                                            snackbarMessage = "Receipt added successfully!"
+                                        }
                                     }
+                                } else {
+                                    snackbarMessage = "Failed to process receipt. Please try again."
                                 }
+
                             }
                         } catch (e: Exception) {
                             Log.e("ReceiptScanScreen", "Error processing receipt", e)
@@ -218,15 +224,15 @@ fun ReceiptListScreen(
                             state = lazyListState,
                             modifier = Modifier.padding(vertical = 8.dp)
                         ) {
-                            items(receipts.size) { index ->
-                                val receipt = receipts[index]
+                            items(receiptsWithItems.size) { index ->
+                                val receiptWithItems = receiptsWithItems[index]
                                 AnimatedVisibility(
                                     visible = true,
                                     enter = fadeIn(animationSpec = tween(durationMillis = 500)),
                                     exit = fadeOut(animationSpec = tween(durationMillis = 500))
                                 ) {
                                     ReceiptListItem(
-                                        receipt = receipt,
+                                        receiptWithItems = receiptWithItems,
                                         navController = navController
                                     )
                                 }

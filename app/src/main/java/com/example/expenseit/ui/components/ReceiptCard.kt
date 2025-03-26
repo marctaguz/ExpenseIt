@@ -41,38 +41,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.expenseit.R
 import com.example.expenseit.data.local.entities.Receipt
+import com.example.expenseit.data.local.entities.ReceiptWithItems
 import com.example.expenseit.utils.DateUtils
 import com.exyte.animatednavbar.utils.noRippleClickable
 
 @Composable
-fun ReceiptCard(receipt: Receipt, navController: NavController) {
-    Card(
-        modifier = Modifier
-            .padding(8.dp)
-            .clickable { navController.navigate("receipt_details/${receipt.id}") },
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            AsyncImage(
-                model = receipt.imageUrl,
-                contentDescription = "Receipt Image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                contentScale = ContentScale.Crop
-            )
-            Text(
-                text = receipt.merchantName,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun ReceiptListItem(receipt: Receipt, navController: NavController) {
+fun ReceiptListItem(receiptWithItems: ReceiptWithItems, navController: NavController) {
+    val receipt = receiptWithItems.receipt
+    val numberOfItems = receiptWithItems.items.size
 
     Row(
         modifier = Modifier
@@ -122,7 +98,7 @@ fun ReceiptListItem(receipt: Receipt, navController: NavController) {
                     color = Color.Gray
                 )
                 Text(
-                    text = " • $${"%.2f".format(receipt.totalPrice)} • 7 items",
+                    text = " • $${"%.2f".format(receipt.totalPrice)} • $numberOfItems items",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     maxLines = 1,
