@@ -15,7 +15,9 @@ import java.math.BigDecimal
             onDelete = ForeignKey.CASCADE
         )
     ]
-)data class Expense(
+)
+
+data class Expense(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
     val amount: BigDecimal = BigDecimal("0.00"),

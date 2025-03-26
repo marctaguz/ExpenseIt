@@ -1,6 +1,7 @@
 package com.example.expenseit.utils
 
 import android.util.Log
+import com.example.expenseit.utils.Constants.API_KEY
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -10,7 +11,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class ReceiptApiClient {
-    private val apiKey = "3ZSxFSVH8fs9hBqXCQ4c3SUwePuWG7IIc0K77p6t0nJqm9GyKGJFJQQJ99BAACmepeSXJ3w3AAALACOGlnd4"
+    private val apiKey = API_KEY
     private val endpoint = "https://expenseit.cognitiveservices.azure.com"
     private val modelID = "prebuilt-receipt"
     private val apiVersion = "2024-11-30"

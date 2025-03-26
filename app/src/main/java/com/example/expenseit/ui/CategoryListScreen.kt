@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.viewmodels.CategoryViewModel
@@ -29,7 +30,7 @@ import com.example.expenseit.ui.viewmodels.CategoryViewModel
 fun CategoryListScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    categoryViewModel: CategoryViewModel,
+    categoryViewModel: CategoryViewModel = hiltViewModel(),
 ) {
     val categories by categoryViewModel.categories.collectAsState()
 
@@ -44,8 +45,8 @@ fun CategoryListScreen(
             ) {
                 PageHeader(
                     title = "Select Category",
-                    actionButtonVisible = true,
-                    onClose = { navController.popBackStack() }
+                    leftActionButtonVisible = true,
+                    onLeftAction = { navController.popBackStack() }
                 )
             }
         },

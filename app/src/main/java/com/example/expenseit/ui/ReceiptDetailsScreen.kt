@@ -1,6 +1,14 @@
 package com.example.expenseit.ui
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,22 +16,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,13 +49,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.composables.core.Menu
+import com.composables.core.MenuButton
+import com.composables.core.MenuContent
+import com.composables.core.MenuItem
+import com.composables.core.rememberMenuState
+import com.example.expenseit.R
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.components.CustomDateField
@@ -54,7 +73,6 @@ import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.components.ReceiptItemCard
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import com.example.expenseit.ui.viewmodels.ReceiptViewModel
-import com.example.expenseit.ui.viewmodels.SettingsViewModel
 import java.math.BigDecimal
 
 @Composable
@@ -62,29 +80,32 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
     var receipt by remember { mutableStateOf<Receipt?>(null) }
     var editedItems by remember { mutableStateOf<List<ReceiptItem>>(emptyList()) }
     val receiptViewModel: ReceiptViewModel = hiltViewModel()
-    var currentlyEditingItemId by remember { mutableStateOf<Int?>(null) } // Track currently edited item
+    var currentlyEditingItemId by remember { mutableStateOf<Int?>(null) }
 
     var editedMerchantName by remember { mutableStateOf("") }
     var editedTransactionDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var editedTotalPrice by remember { mutableStateOf(BigDecimal.ZERO) }
 
-    // Store initial state for comparison
     var initialReceipt by remember { mutableStateOf<Receipt?>(null) }
     var initialItems by remember { mutableStateOf<List<ReceiptItem>>(emptyList()) }
 
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var showImagePreview by remember { mutableStateOf(false) }
-
-    val settingsViewModel: SettingsViewModel = hiltViewModel()
-    val expenseViewModel: ExpenseViewModel = hiltViewModel()
-    val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
-
     var showExpenseDialog by remember { mutableStateOf(false) }
+
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+
+    val expenseViewModel: ExpenseViewModel = hiltViewModel()
+
+    val options = listOf("United States", "Greece", "Indonesia", "United Kingdom")
+    var selected by remember { mutableStateOf(0) }
+    val state = rememberMenuState(expanded = isDropdownExpanded)
 
     LaunchedEffect(receiptId) {
         receiptViewModel.getReceiptById(receiptId) { fetchedReceipt, fetchedItems ->
             receipt = fetchedReceipt
-            editedItems = fetchedItems.toMutableList()  // Create a copy for UI editing
+            editedItems = fetchedItems.toMutableList()
             editedMerchantName = fetchedReceipt?.merchantName ?: ""
             editedTransactionDate = fetchedReceipt?.date ?: System.currentTimeMillis()
             editedTotalPrice = fetchedReceipt?.totalPrice ?: BigDecimal("0.00")
@@ -105,72 +126,110 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             ) {
                 PageHeader(
                     title = "Receipt Details",
-                    actionButtonVisible = true,
-                    onClose = {
+                    leftActionButtonVisible = true,
+                    onLeftAction = {
                         if (hasChanges()) {
                             showConfirmDialog = true
                         } else {
                             navController.popBackStack()
                         }
-                    }                )
-                Button(
-                    onClick = {
-                        receipt?.let {
-                            val updatedReceipt = it.copy(
-                                merchantName = editedMerchantName,
-                                date = editedTransactionDate,
-                                totalPrice = editedTotalPrice
-                            )
-                            receiptViewModel.updateReceipt(updatedReceipt)
-                        }
-                        receiptViewModel.updateReceiptItems(editedItems)
-                        navController.popBackStack()
-                    },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 16.dp),
-                    border = BorderStroke(1.dp, Color.White)
-                ) {
-                    Icon(imageVector = Icons.Default.Done, contentDescription = "Save")
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Save")
-                }
-            }
-        },
-        bottomBar = {
-            receipt?.let { rec ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    }
+                )
+                Menu(state, modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp)) {
+                    MenuButton(Modifier.clip(RoundedCornerShape(6.dp)))
+                    {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More Options", tint = Color.White)
+                    }
+
+                    MenuContent(
+                        modifier = Modifier.width(180.dp)
+//                            .shadow(elevation = 1.dp, shape = RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
+                            .background(Color.White)
+                            .padding(0.dp),
+                        enter = scaleIn(transformOrigin = TransformOrigin(1f, 0f)) +
+                                fadeIn(tween(durationMillis = 500)) +
+                                expandIn(expandFrom = Alignment.TopEnd),
+                        exit = scaleOut(transformOrigin = TransformOrigin(0f, 0f)) +
+                                fadeOut() +
+                                shrinkOut(shrinkTowards = Alignment. TopStart)
+
                     ) {
-                        Button(
-                            onClick = { /* Rescan functionality (to be implemented later) */ },
-                            modifier = Modifier.padding(start = 0.dp)
+                        MenuItem(
+                            modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                            onClick = {
+                                isDropdownExpanded = false
+                                // Implement Rescan functionality
+                            }
                         ) {
-                            Text("Rescan")
+                            Text("Rescan", modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp))
                         }
-                        Button(
-                            onClick = { showExpenseDialog = true }
+                        MenuItem(
+                            modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                            onClick = {
+                                isDropdownExpanded = false
+                                showExpenseDialog = true
+                            }
                         ) {
-                            Text("Create Expense")
+                            Text("Create Expense", modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp))
+                        }
+                        HorizontalDivider()
+                        MenuItem(
+                            modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                            onClick = {
+                                isDropdownExpanded = false
+                                showDeleteDialog = true
+                            }
+                        ) {
+                            Text("Delete", modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),color = Color.Red)
                         }
                     }
+
                 }
             }
         },
+        floatingActionButton = {
+            FloatingActionButton (
+                onClick = {
+                    receipt?.let {
+                        val updatedReceipt = it.copy(
+                            merchantName = editedMerchantName,
+                            date = editedTransactionDate,
+                            totalPrice = editedTotalPrice
+                        )
+                        receiptViewModel.updateReceipt(updatedReceipt)
+                        receiptViewModel.updateReceiptItems(editedItems)
+                        navController.popBackStack()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                elevation = FloatingActionButtonDefaults.elevation(2.dp, 2.dp)
+            ) {
+//                Icon(
+//                    imageVector = Icons.Default.Done,
+//                    contentDescription = "Save"
+//                )
+                Text(
+                    text = "Save",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center,
         content = { innerPadding ->
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
                     .padding(12.dp)
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
             ) {
                 receipt?.let { rec ->
 
@@ -189,7 +248,10 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                         ) {
                             if (rec.imageUrl.isNotEmpty()) {
                                 AsyncImage(
-                                    model = rec.imageUrl,
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(rec.imageUrl)
+                                        .placeholder(R.drawable.placeholder_image)
+                                        .build(),
                                     contentDescription = "Receipt Image",
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -206,135 +268,142 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                             }
                         }
                     }
-                    //Merchant and Date section
-                    Card(modifier = Modifier
-                        .fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(1.dp),
-                        colors = CardDefaults.cardColors(Color.White),
-                    ) {
-                        Row(modifier = Modifier
-                            .padding(horizontal = 5.dp, vertical = 20.dp)
-                        ) {
-                            Column(modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 10.dp)
-                            ) {
-                                CustomTextField(
-                                    value = editedMerchantName,
-                                    onValueChange = { editedMerchantName = it },
-                                    label = "Merchant"
-                                )
-                            }
-                            Column(modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 10.dp)
-                            ) {
-                                CustomDateField(
-                                    date = editedTransactionDate,
-                                    onDateSelected = { editedTransactionDate = it },
-                                    label = "Date"
-                                )
 
-                            }
-
-                        }
-                        Row {
-                            Column(
-                                modifier = Modifier
-                                    .padding(start = 10.dp, bottom = 20.dp).weight(1f)
-                            ) {
-                                CustomTextField(
-                                    value = editedTotalPrice.toString(),
-                                    onValueChange = { input ->
-                                        editedTotalPrice = input.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                                    },
-                                    label = "Total Price"
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {}
-                        }
-
-                    }
-
-                    //Items list section
+                    // Receipt Details section
                     Card(
                         modifier = Modifier
-                            .padding(top = 10.dp, bottom = 30.dp)
-                            .weight(1f),
+                            .padding(horizontal = 0.dp, vertical = 8.dp),
                         elevation = CardDefaults.cardElevation(1.dp),
                         colors = CardDefaults.cardColors(Color.White),
                     ) {
-                        LazyColumn(
-                            modifier = Modifier.padding(vertical = 12.dp)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Items",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                            Text(
+                                text = "Receipt Details",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
 
-                                    Button(
-                                        onClick = {
-                                            val newItem = ReceiptItem(
-                                                receiptId = receiptId,
-                                                itemName = "New Item",
-                                                quantity = 1,
-                                                price = BigDecimal("0.00")
-                                            )
-                                            editedItems = editedItems + newItem  // Add to local list
+                            // Merchant Name
+                            CustomTextField(
+                                value = editedMerchantName,
+                                onValueChange = { editedMerchantName = it },
+                                label = "Merchant",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            )
 
-                                        },
-                                        contentPadding = PaddingValues(
-                                            horizontal = 12.dp,
-                                            vertical = 6.dp
-                                        )
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Add,
-                                            contentDescription = "Add",
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Add Item")
-                                    }
-                                }
+                            // Date
+                            CustomDateField(
+                                date = editedTransactionDate,
+                                onDateSelected = { editedTransactionDate = it },
+                                label = "Date",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            )
 
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                    color = Color(0xFFE5E7EB)
+                            // Total Price
+                            CustomTextField(
+                                value = editedTotalPrice.toString(),
+                                onValueChange = { input ->
+                                    editedTotalPrice = input.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                                },
+                                label = "Total Price",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    // Items list section
+                    Card(
+                        modifier = Modifier
+                            .padding(horizontal = 0.dp, vertical = 8.dp)
+                            .padding(bottom = 160.dp),
+                        elevation = CardDefaults.cardElevation(1.dp),
+                        colors = CardDefaults.cardColors(Color.White),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Items",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
                                 )
+
+                                Button(
+                                    onClick = {
+                                        val newItem = ReceiptItem(
+                                            receiptId = receiptId,
+                                            itemName = "New Item",
+                                            quantity = 1,
+                                            price = BigDecimal("0.00")
+                                        )
+                                        editedItems = editedItems + newItem
+                                    },
+                                    contentPadding = PaddingValues(
+                                        horizontal = 12.dp,
+                                        vertical = 6.dp
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Add",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Add Item")
+                                }
                             }
 
+                            HorizontalDivider(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                color = Color(0xFFE5E7EB)
+                            )
 
-                            items(editedItems) { item ->
-                                ReceiptItemCard(
-                                    item = item,
-                                    isEditing = currentlyEditingItemId == item.id,
-                                    onEditClick = {
-                                        currentlyEditingItemId = item.id
-                                    }, // Set to edit mode
-                                    onDoneEditing = { updatedItem ->
-                                        // Update the local list only (not saving to DB yet)
-                                        editedItems = editedItems.map {
-                                            if (it.id == updatedItem.id) updatedItem else it
+                            // Replace LazyColumn with a regular Column
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                editedItems.forEach { item ->
+                                    ReceiptItemCard(
+                                        item = item,
+                                        isEditing = currentlyEditingItemId == item.id,
+                                        onEditClick = {
+                                            currentlyEditingItemId = item.id
+                                        },
+                                        onDoneEditing = { updatedItem ->
+                                            editedItems = editedItems.map {
+                                                if (it.id == updatedItem.id) updatedItem else it
+                                            }
+                                            currentlyEditingItemId = null
+                                        },
+                                        onDelete = {
+                                            editedItems = editedItems.filter { it.id != item.id }
                                         }
-                                        currentlyEditingItemId = null
-                                    },
-                                    onDelete = {
-                                        editedItems = editedItems.filter { it.id != item.id }  // Remove from local list
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
+
 
 
                 }
@@ -342,7 +411,6 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
         }
     )
 
-    // ✅ Full Screen Image Preview Dialog
     if (showImagePreview) {
         AlertDialog(
             containerColor = Color.Transparent,
@@ -353,7 +421,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
                 AsyncImage(
                     model = receipt?.imageUrl,
                     contentDescription = "Full Screen Receipt",
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxWidth(),
                     alignment = Alignment.Center
                 )
             }
@@ -371,6 +439,23 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
         )
     }
 
+    // Delete Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Receipt?") },
+            text = { Text("Do you really want to delete this receipt? This action cannot be undone.") },
+            confirmButton = { TextButton(onClick = {
+                receiptViewModel.deleteReceipt(receiptId)
+                showDeleteDialog = false
+                navController.popBackStack() }
+            ) {
+                Text("Delete")
+            } },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") } }
+        )
+    }
+
     // Show expense creation dialog
     if (showExpenseDialog) {
         AlertDialog(
@@ -380,7 +465,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             confirmButton = {
                 Button(onClick = {
                     receipt?.let { rec ->
-                        val defaultCategoryId = 1L // Replace with your default category ID\
+                        val defaultCategoryId = 1L
                         expenseViewModel.addExpense(
                                 title = rec.merchantName,
                                 amount = rec.totalPrice,
@@ -400,7 +485,7 @@ fun ReceiptDetailsScreen(navController: NavController, receiptId: Int) {
             dismissButton = {
                 Button(onClick = {
                     showExpenseDialog = false
-                    navController.navigate("select_expense_items/$receiptId")
+                    //TODO
                 }) {
                     Text("Select Items")
                 }

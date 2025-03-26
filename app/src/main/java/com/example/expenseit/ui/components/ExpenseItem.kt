@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,17 +27,17 @@ import com.example.expenseit.ui.viewmodels.SettingsViewModel
 import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.ui.theme.categoryColors
 import com.example.expenseit.ui.viewmodels.CategoryViewModel
+import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun ExpenseItem(expense: Expense, categories: List<Category>,onClick: (Expense) -> Unit) {
+fun ExpenseItem(expense: Expense, categoryViewModel: CategoryViewModel, onClick: (Expense) -> Unit) {
     val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val formattedDate = dateFormatter.format(expense.date)
 
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
-    val categoryViewModel: CategoryViewModel = hiltViewModel()
 
     val category by categoryViewModel.getCategoryById(expense.categoryId)
         .collectAsState(initial = null)
@@ -108,3 +109,4 @@ fun ExpenseCategoryBadge(categoryName: String, color: String) {
         )
     }
 }
+

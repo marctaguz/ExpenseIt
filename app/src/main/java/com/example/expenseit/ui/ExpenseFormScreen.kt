@@ -15,21 +15,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,20 +41,16 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.expenseit.ui.components.CustomDateField
 import com.example.expenseit.ui.components.CustomNumberField
 import com.example.expenseit.ui.components.CustomTextField
-import com.example.expenseit.ui.components.DatePickerModal
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.viewmodels.CategoryViewModel
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun ExpenseFormScreen(
@@ -69,19 +61,19 @@ fun ExpenseFormScreen(
 ) {
     val context = LocalContext.current
     val expense by expenseViewModel.expense.collectAsState()
-    val categories by categoryViewModel.categories.collectAsState()
 
     var title by rememberSaveable { mutableStateOf("") }
     var amount by rememberSaveable { mutableStateOf("") }
-    var categoryId by rememberSaveable { mutableStateOf<Long>(0) } // Use categoryId
+    var categoryId by rememberSaveable { mutableLongStateOf(1L) }
     var description by rememberSaveable { mutableStateOf("") }
     var date by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var amountError by remember { mutableStateOf("") }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+    var showErrors by remember { mutableStateOf(false) }
+    var isFormInitialized by rememberSaveable { mutableStateOf(false) }
 
     val category by categoryViewModel.getCategoryById(categoryId)
         .collectAsState(initial = null)
-
 
     LaunchedEffect(expenseId) {
         if (expenseId != null) {
@@ -91,12 +83,13 @@ fun ExpenseFormScreen(
 
     LaunchedEffect(expense) {
         expense?.let {
-            if (expenseId != null) { // Ensure this only runs when editing
+            if (expenseId != null && !isFormInitialized) {
                 title = it.title
                 amount = it.amount.toString()
                 categoryId = it.categoryId // Use categoryId
                 description = it.description
                 date = it.date
+                isFormInitialized = true
             }
         }
     }
@@ -116,8 +109,8 @@ fun ExpenseFormScreen(
             ) {
                 PageHeader(
                     title = if (expenseId != null) "Edit Expense" else "Add Expense",
-                    actionButtonVisible = true,
-                    onClose = { navController.popBackStack() }
+                    leftActionButtonVisible = true,
+                    onLeftAction = { navController.popBackStack() }
                 )
                 // Delete button (only visible when editing an expense)
                 if (expenseId != null) {
@@ -132,6 +125,47 @@ fun ExpenseFormScreen(
                 }
             }
         },
+        floatingActionButton = {
+            FloatingActionButton (
+                onClick = {
+                    showErrors = true
+                    if (title.isNotEmpty() && amount.isNotEmpty() && categoryId != 0L && amountError.isEmpty()) {
+                        val parsedAmount = amount.toBigDecimal()
+                        if (expenseId != null) {
+                            // Update existing expense
+                            expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, categoryId, description, date
+                            ) {
+                                navController.popBackStack()
+                            }
+                        } else {
+                            // Add new expense
+                            expenseViewModel.addExpense(title, parsedAmount, categoryId, description, date
+                            ) {
+                                navController.popBackStack()
+                            }
+                        }
+                    } else {
+                        Toast.makeText(context, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                elevation = FloatingActionButtonDefaults.elevation(2.dp, 2.dp)
+            ) {
+//                Icon(
+//                    imageVector = Icons.Default.Done,
+//                    contentDescription = "Save"
+//                )
+                Text(
+                    text = "Save",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center,
         content = { paddingValues ->
             Column(modifier = Modifier
                 .fillMaxSize()
@@ -142,7 +176,8 @@ fun ExpenseFormScreen(
                     value = title,
                     onValueChange = { title = it },
                     label = "Title",
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    showError = showErrors && title.isEmpty()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -154,7 +189,8 @@ fun ExpenseFormScreen(
                     },
                     label = "Amount",
                     isDecimal = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    showError = showErrors && title.isEmpty()
                 )
                 if (amountError.isNotEmpty()) {
                     Text(text = amountError, color = MaterialTheme.colorScheme.error)
@@ -168,18 +204,18 @@ fun ExpenseFormScreen(
                     CustomTextField(
                         value = category?.name ?: "Select Category",
                         onValueChange = { /* Do nothing, handled by dialog */ },
-                        label = "Select Category",
+                        label = "Category",
                         readOnly = true,
                         trailingIcon = {
                             Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Category")
-
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.Transparent) // Ensure the background is transparent so the clickable Box is visible
-                            .focusRequester(focusRequester)
+                            .background(Color.Transparent)
+                            .focusRequester(focusRequester),
+                        showError = false
                     )
-
+                    Log.d("ExpenseFormScreen", "Category ID: $categoryId")
                     Box(modifier = Modifier
                         .matchParentSize()
                         .clickable(
@@ -188,7 +224,7 @@ fun ExpenseFormScreen(
                                 focusRequester.requestFocus()
                             },
                             interactionSource = interactionSource,
-                            indication = null //to avoid the ripple on the Box
+                            indication = null
                         )
                     )
                 }
@@ -214,32 +250,6 @@ fun ExpenseFormScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Save Button
-                Button(
-                    onClick = {
-                        if (title.isNotEmpty() && amount.isNotEmpty() && categoryId != null && amountError.isEmpty()) {
-                            val parsedAmount = amount.toBigDecimal()
-                            if (expenseId != null) {
-                                // Update existing expense
-                                expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, categoryId!!, description, date!!) {
-                                    navController.popBackStack()
-                                }
-                            } else {
-                                // Add new expense
-                                expenseViewModel.addExpense(title, parsedAmount, categoryId!!, description,
-                                    date
-                                ) {
-                                    navController.popBackStack()
-                                }
-                            }
-                        } else {
-                            Toast.makeText(context, "Please fill all fields correctly", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Save Expense")
-                }
             }
         }
     )

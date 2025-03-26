@@ -2,30 +2,26 @@ package com.example.expenseit.ui
 
 import SettingsScreen
 import android.util.Log
-import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -35,14 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.expenseit.R
-import com.example.expenseit.ui.viewmodels.CategoryViewModel
-import com.example.expenseit.ui.viewmodels.ExpenseViewModel
-import com.example.expenseit.ui.viewmodels.ReceiptViewModel
 import com.exyte.animatednavbar.AnimatedNavigationBar
 import com.exyte.animatednavbar.animation.balltrajectory.Parabolic
 import com.exyte.animatednavbar.animation.indendshape.Height
@@ -59,15 +51,11 @@ enum class NavigationBarItems(val iconRes: Int, val route: String) {
 }
 
 @Composable
-fun ExpenseItApp(
-    expenseViewModel: ExpenseViewModel = hiltViewModel(),
-    categoryViewModel: CategoryViewModel = hiltViewModel(),
-    receiptViewModel: ReceiptViewModel = hiltViewModel()
-) {
+fun ExpenseItApp() {
     val navController = rememberNavController()
     val navigationBarItems = remember { NavigationBarItems.entries.toTypedArray() }
-    var selectedIndex by rememberSaveable { mutableStateOf(0) }
-    var currentRoute by remember { mutableStateOf("expense_list") } // Track current route
+    var selectedIndex by rememberSaveable { mutableIntStateOf(0) }
+    var currentRoute by remember { mutableStateOf("expense_list") }
 
     LaunchedEffect(navController) {
         navController.addOnDestinationChangedListener { _, destination, _ ->
@@ -76,34 +64,15 @@ fun ExpenseItApp(
             // Get the index of the destination in the navigationBarItems list
             val newIndex = navigationBarItems.indexOfFirst { it.route == destination.route }
             if (newIndex >= 0) {
-                selectedIndex = if (newIndex >= 2) newIndex + 1 else newIndex
+                selectedIndex = newIndex
             }
         }
     }
 
     val hideBottomBarScreens = listOf("add_expense", "add_expense/{expenseId}", "category_list", "receipt_details/{receiptId}", "edit_category")
+    val scrollToTop = remember { mutableStateOf(false) }
 
     Scaffold(
-        floatingActionButton = {
-            if (currentRoute !in hideBottomBarScreens) {  // Hide FAB on specific screens
-                FloatingActionButton(
-                    onClick = {
-                        navController.navigate("add_expense") {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    shape = CircleShape,
-                    modifier = Modifier
-//                        .align(Alignment.Center)
-                        .size(70.dp)
-                        .offset(y = 70.dp)
-                ) {
-                    Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Expense")
-                }
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
             if (currentRoute !in hideBottomBarScreens) { // Hide Bottom Bar on specific screens
                 AnimatedNavigationBar(
@@ -118,19 +87,28 @@ fun ExpenseItApp(
                     ballColor = MaterialTheme.colorScheme.primary,
                 ) {
                     navigationBarItems.forEachIndexed { index, item ->
-                        if (index == 2) {
-                            //Spacer for FAB
-                            Spacer(Modifier.width(55.dp))
-                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .noRippleClickable {
-                                    selectedIndex = item.ordinal
-                                    navController.navigate(item.route) {
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    if (currentRoute != item.route) {
+                                        selectedIndex = item.ordinal
+                                        navController.navigate(item.route) {
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    } else {
+                                        when (item.route) {
+                                            "expense_list" -> {
+                                                scrollToTop.value = true
+                                            }
+
+                                            "receipt_scan" -> {
+
+                                            }
+                                        }
                                     }
+
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -138,7 +116,7 @@ fun ExpenseItApp(
                                 painter = painterResource(id = item.iconRes),
                                 modifier = Modifier.size(26.dp),
                                 contentDescription = "Bottom Bar Icon",
-                                colorFilter = if (selectedIndex <= 2 && selectedIndex == item.ordinal || selectedIndex > 2 && selectedIndex - 1 == item.ordinal) {
+                                colorFilter = if (selectedIndex == item.ordinal) {
                                     // Change color for selected icon
                                     ColorFilter.tint(MaterialTheme.colorScheme.onPrimary)
                                 } else {
@@ -159,17 +137,35 @@ fun ExpenseItApp(
         NavHost(
             navController = navController,
             startDestination = "expense_list",
-            Modifier.fillMaxSize(),
-            enterTransition = { fadeIn(animationSpec = tween(300)) },
-            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
             popEnterTransition = { fadeIn(animationSpec = tween(300)) },
             popExitTransition = { fadeOut(animationSpec = tween(300)) },
         ) {
             composable("expense_list") {
-                ExpenseListScreen(navController = navController, expenseViewModel = expenseViewModel, modifier = contentModifier)
+                ExpenseListScreen(
+                    navController = navController,
+                    modifier = contentModifier,
+                    scrollToTop = scrollToTop.value,
+                    onScrollToTopCompleted = { scrollToTop.value = false }
+                )
             }
-            composable("receipt_scan") {
-                ReceiptScanScreen(navController = navController, modifier = contentModifier)
+            composable(
+                route = "receipt_scan",
+                popEnterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = tween(durationMillis = 300)
+                    )
+                }
+            ) {
+                ReceiptListScreen(
+                    navController = navController,
+                    modifier = contentModifier,
+                    scrollToTop = scrollToTop.value,
+                    onScrollToTopCompleted = { scrollToTop.value = false }
+                )
             }
             composable("expense_stats") {
                 ExpenseStatsScreen(navController = navController, modifier = contentModifier)
@@ -178,16 +174,31 @@ fun ExpenseItApp(
                 SettingsScreen(navController = navController, modifier = contentModifier)
             }
             composable("add_expense") {
-                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = null)
+                ExpenseFormScreen(navController = navController, expenseId = null)
             }
             composable("add_expense/{expenseId}") { backStackEntry ->
                 val expenseId = backStackEntry.arguments?.getString("expenseId")
-                ExpenseFormScreen(navController = navController, expenseViewModel = expenseViewModel, expenseId = expenseId)
+                ExpenseFormScreen(navController = navController, expenseId = expenseId)
             }
             composable("category_list") {
-                CategoryListScreen(navController = navController, categoryViewModel = categoryViewModel)
+                CategoryListScreen(navController = navController)
             }
-            composable("receipt_details/{receiptId}") {
+            composable(
+                route = "receipt_details/{receiptId}",
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(durationMillis = 300)
+                    ) + fadeIn(animationSpec = tween(300, easing = LinearEasing))
+                },
+                exitTransition = {
+                    // Slide out to the right when returning to ReceiptScanScreen
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(durationMillis = 300)
+                    )
+                },
+            ) {
                 val receiptId = it.arguments?.getString("receiptId")?.toIntOrNull()
                 if (receiptId != null) {
                     ReceiptDetailsScreen(navController = navController, receiptId = receiptId)

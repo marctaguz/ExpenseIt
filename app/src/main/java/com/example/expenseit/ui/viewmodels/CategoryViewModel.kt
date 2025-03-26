@@ -26,6 +26,8 @@ class CategoryViewModel @Inject constructor(
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories: StateFlow<List<Category>> = _categories.asStateFlow()
 
+    private val _categoryCount = MutableStateFlow(0)
+    val categoryCount: StateFlow<Int> = _categoryCount
 
     init {
         viewModelScope.launch {
@@ -38,6 +40,7 @@ class CategoryViewModel @Inject constructor(
         viewModelScope.launch {
             categoryDao.getAllCategories().collect { categories ->
                 _categories.value = categories
+                _categoryCount.value = categories.size
             }
         }
     }
