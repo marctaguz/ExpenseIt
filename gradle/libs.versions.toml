@@ -15,6 +15,7 @@ coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+kotlinxCoroutinesTest = "1.10.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
 composeBom = "2025.02.00"
@@ -41,6 +42,7 @@ reorderable = "2.4.3"
 
 [libraries]
 core = { module = "com.composables:core", version.ref = "core" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 androidchart = { module = "com.github.AppDevNext:AndroidChart", version.ref = "androidchart" }
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }

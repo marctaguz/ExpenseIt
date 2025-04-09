@@ -2,10 +2,13 @@ package com.example.expenseit.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import com.example.expenseit.data.local.db.ExpenseDao
+import com.example.expenseit.data.local.entities.CategoryTotal
 import com.example.expenseit.data.local.entities.ExpenseSummary
 import com.example.expenseit.utils.DateUtils
 import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.PieEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,12 +21,12 @@ class StatsViewModel @Inject constructor(
 
     fun getEntriesForChart(entries: List<ExpenseSummary>): List<Entry> {
         return entries.mapIndexed { index, entry ->
-            Entry(index.toFloat(), entry.total.toFloat())  // ✅ Use index for x-axis
+            Entry(index.toFloat(), entry.total.toFloat())
         }
     }
 
     fun getMonthLabels(entries: List<ExpenseSummary>): List<String> {
-        return entries.map { DateUtils.formatMonthForChart(it.month) }  // ✅ Format month labels
+        return entries.map { DateUtils.formatMonthForChart(it.month) }
     }
 
     fun getMonthlyComparison(data: List<ExpenseSummary>): Pair<Float, Float> {
@@ -34,4 +37,15 @@ class StatsViewModel @Inject constructor(
 
         return Pair(currentMonth, lastMonth)
     }
+
+    // New: Get pie chart entries for the given category totals list.
+    fun getEntriesForPieChart(data: List<CategoryTotal>): List<PieEntry> {
+        return data.map { PieEntry(it.total.toFloat(), it.categoryName) }
+    }
+
+    // New: Expose a function for category totals for a specific month.
+    fun getCategoryTotalsForMonth(month: String) : Flow<List<CategoryTotal>> {
+        return expenseDao.getCategoryTotalsForMonth(month)
+    }
+
 }

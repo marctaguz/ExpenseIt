@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.expenseit"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -121,7 +121,8 @@ dependencies {
     implementation(libs.reorderable)
 
     implementation(libs.core)
-
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 // Allow references to generated code
