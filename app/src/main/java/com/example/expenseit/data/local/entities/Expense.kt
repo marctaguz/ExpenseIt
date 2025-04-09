@@ -32,3 +32,7 @@ data class ExpenseSummary(
     val total: BigDecimal,
 )
 
+data class CategoryTotal(
+    val categoryName: String,
+    val total: BigDecimal
+)
