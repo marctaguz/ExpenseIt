@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.Delete
 import androidx.room.OnConflictStrategy
 import androidx.room.Update
+import com.example.expenseit.data.local.entities.CategoryTotal
 import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.data.local.entities.ExpenseSummary
 import kotlinx.coroutines.flow.Flow
@@ -45,4 +46,21 @@ interface ExpenseDao {
 """)
     fun getMonthlyExpenses(): Flow<List<ExpenseSummary>>
 
+    @Query("""
+    SELECT categories.name AS categoryName, SUM(expenses.amount) AS total
+    FROM expenses
+    INNER JOIN categories ON expenses.categoryId = categories.id
+    GROUP BY categoryId
+""")
+    fun getCategoryTotals(): Flow<List<CategoryTotal>>
+
+    @Query("""
+        SELECT categories.name AS categoryName, SUM(expenses.amount) AS total
+        FROM expenses
+        INNER JOIN categories ON expenses.categoryId = categories.id
+        WHERE strftime('%Y-%m', datetime(date / 1000, 'unixepoch')) = :month
+        GROUP BY categoryId
+        ORDER BY total DESC
+    """)
+    fun getCategoryTotalsForMonth(month: String): Flow<List<CategoryTotal>>
 }
