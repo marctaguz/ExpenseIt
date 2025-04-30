@@ -14,7 +14,10 @@ import com.example.expenseit.data.local.db.MIGRATION_5_6
 import com.example.expenseit.data.local.db.MIGRATION_6_7
 import com.example.expenseit.data.local.db.MIGRATION_7_8
 import com.example.expenseit.data.local.db.ReceiptDao
+import com.example.expenseit.data.local.db.SettingsDataStoreManager
 import com.example.expenseit.data.repository.CategoryRepository
+import com.example.expenseit.data.repository.CurrencyDataSource
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -63,4 +66,14 @@ object AppModule {
     fun provideCategoryRepository(categoryDao: CategoryDao): CategoryRepository {
         return CategoryRepository(categoryDao)
     }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class CurrencyModule {
+    @Binds
+    @Singleton
+    abstract fun bindCurrencyDataSource(
+        settings: SettingsDataStoreManager
+    ): CurrencyDataSource
 }

@@ -9,12 +9,10 @@ import androidx.lifecycle.viewModelScope
 import coil.Coil
 import coil.request.ImageRequest
 import com.example.expenseit.data.local.db.ReceiptDao
-import com.example.expenseit.data.local.entities.Expense
 import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.data.local.entities.ReceiptWithItems
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,8 +38,8 @@ class ReceiptViewModel @Inject constructor(
     }
 
     fun loadAllReceiptsWithItems() {
+        _isLoading.value = true
         viewModelScope.launch {
-            _isLoading.value = true
             val receipts = receiptDao.getReceiptsWithItems()
             _receiptsWithItems.value = receipts
             _isLoading.value = false
@@ -49,8 +47,8 @@ class ReceiptViewModel @Inject constructor(
     }
 
     fun loadAllReceipts() {
+        _isLoading.value = true
         viewModelScope.launch {
-            _isLoading.value = true
             val allReceipts = receiptDao.getAllReceipts()
             _receipts.value = allReceipts
             _isLoading.value = false
@@ -90,17 +88,10 @@ class ReceiptViewModel @Inject constructor(
     }
 
     fun updateReceiptItems(items: List<ReceiptItem>) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             items.forEach { item ->
                 receiptDao.updateReceiptItem(item)
             }
-        }
-    }
-
-    fun updateReceiptItem(item: ReceiptItem, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            receiptDao.updateReceiptItem(item)
-            onSuccess()
         }
     }
 
@@ -108,13 +99,6 @@ class ReceiptViewModel @Inject constructor(
         viewModelScope.launch {
             receiptDao.deleteReceiptById(receiptId)
             loadAllReceipts()
-        }
-    }
-
-    fun getReceiptWithItems(receiptId: Int, onResult: (ReceiptWithItems?) -> Unit) {
-        viewModelScope.launch {
-            val receipt = receiptDao.getReceiptWithItems(receiptId)
-            onResult(receipt)
         }
     }
 }

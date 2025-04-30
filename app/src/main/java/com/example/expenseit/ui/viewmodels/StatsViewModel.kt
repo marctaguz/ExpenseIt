@@ -6,7 +6,6 @@ import com.example.expenseit.data.local.entities.CategoryTotal
 import com.example.expenseit.data.local.entities.ExpenseSummary
 import com.example.expenseit.utils.DateUtils
 import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.PieEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -36,11 +35,6 @@ class StatsViewModel @Inject constructor(
         val lastMonth = data[1].total.toFloat()
 
         return Pair(currentMonth, lastMonth)
-    }
-
-    // New: Get pie chart entries for the given category totals list.
-    fun getEntriesForPieChart(data: List<CategoryTotal>): List<PieEntry> {
-        return data.map { PieEntry(it.total.toFloat(), it.categoryName) }
     }
 
     // New: Expose a function for category totals for a specific month.

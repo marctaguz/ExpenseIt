@@ -123,6 +123,14 @@ dependencies {
     implementation(libs.core)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.turbine)
+    testImplementation(libs.core.testing)
+    testImplementation(libs.androidx.core)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.runner)
+    testImplementation(libs.androidx.room.testing)
+
 }
 
 // Allow references to generated code
