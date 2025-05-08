@@ -27,7 +27,6 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY `order` ASC")
     fun getAllCategories(): Flow<List<Category>>
 
-    // Add a method to insert multiple categories
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(categories: List<Category>)
 

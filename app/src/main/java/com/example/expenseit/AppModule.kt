@@ -25,16 +25,14 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
-@InstallIn(SingletonComponent::class) // Singleton scope
+@InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // ✅ Provide Application Context
     @Provides
     fun provideContext(application: android.app.Application): Context {
         return application.applicationContext
     }
 
-    // ✅ Provide Database Instance
     @Provides
     @Singleton
     fun provideDatabase(context: Context): ExpenseDatabase {
@@ -43,7 +41,7 @@ object AppModule {
             ExpenseDatabase::class.java,
             "expense_database"
         ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
-            .fallbackToDestructiveMigration() // ⚠️ Resets database if schema changes
+            .fallbackToDestructiveMigration()
             .build()
     }
 

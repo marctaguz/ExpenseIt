@@ -2,10 +2,7 @@ package com.example.expenseit.data.repository
 
 import com.example.expenseit.data.local.db.CategoryDao
 import com.example.expenseit.data.local.entities.Category
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class CategoryRepository @Inject constructor(

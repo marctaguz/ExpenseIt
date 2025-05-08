@@ -32,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,14 +40,11 @@ import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.viewmodels.ExpenseViewModel
 import com.example.expenseit.ui.viewmodels.StatsViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.expenseit.ui.components.ExpenseLineChart
 import com.example.expenseit.ui.components.ExpensePieChart
 import com.example.expenseit.ui.theme.backgroundLight
 import com.example.expenseit.ui.viewmodels.SettingsViewModel
 import com.github.mikephil.charting.data.PieEntry
 import java.text.SimpleDateFormat
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -58,12 +54,9 @@ fun ExpenseStatsScreen(navController: NavController, modifier: Modifier, expense
     val statsViewModel: StatsViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
-    val monthlyData by statsViewModel.monthlyExpenses.collectAsState(emptyList())
-    val dataState by statsViewModel.entries.collectAsState(emptyList())
     val headerHeight = 160.dp
     val overlapHeight = 86.dp
     val currentMonthString = remember {
-        // For example, using SimpleDateFormat (be aware of time zones)
         val sdf = SimpleDateFormat("yyyy-MM", Locale.getDefault())
         sdf.format(Date())
     }
@@ -74,10 +67,6 @@ fun ExpenseStatsScreen(navController: NavController, modifier: Modifier, expense
     }.collectAsState(initial = emptyList())
 
     val pieEntries = categoryTotalsForMonth.map { PieEntry(it.total.toFloat(), it.categoryName) }
-
-    val categoryTotals by statsViewModel
-        .getCategoryTotalsForMonth(selectedMonth.toString())
-        .collectAsStateWithLifecycle(emptyList())
 
     val displayMonth = try {
         val sdfInput = SimpleDateFormat("yyyy-MM", Locale.getDefault())
@@ -99,13 +88,11 @@ fun ExpenseStatsScreen(navController: NavController, modifier: Modifier, expense
 
     Scaffold(
         topBar = {
-            // This header shows the navigation for months.
 
         },
         content = { innerPadding ->
 
             Box(modifier = Modifier.fillMaxSize()) {
-                // Header
                 Column(
                     modifier = Modifier
                         .padding(innerPadding)
@@ -156,13 +143,6 @@ fun ExpenseStatsScreen(navController: NavController, modifier: Modifier, expense
                     }
 
                     Column(Modifier.padding(innerPadding).fillMaxSize()) {
-                        val (currentMonth, lastMonth) = statsViewModel.getMonthlyComparison(monthlyData)
-
-//                        ExpenseComparisonCard(currentMonth, lastMonth, currency)
-
-//                        val categoryData by statsViewModel.categoryTotals.collectAsState(emptyList())
-//                        val pieEntries = statsViewModel.getEntriesForPieChart(categoryData)
-
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -174,7 +154,6 @@ fun ExpenseStatsScreen(navController: NavController, modifier: Modifier, expense
                             if (pieEntries.isNotEmpty()) {
                                 ExpensePieChart(entries = pieEntries)
                             } else {
-                                // When no pie data, show a placeholder
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize(),
@@ -221,60 +200,9 @@ fun ExpenseStatsScreen(navController: NavController, modifier: Modifier, expense
                                 }
                             }
                         }
-
-                        val entries = statsViewModel.getEntriesForChart(dataState)
-                        val monthLabels = statsViewModel.getMonthLabels(dataState)
-//                        if (entries.isNotEmpty()) {
-//                            Card(
-//                                modifier = Modifier
-//                                    .fillMaxWidth()
-//                                    .padding(16.dp)
-//                                    .height(300.dp),
-//                                colors = CardDefaults.cardColors(Color.White),
-//                                elevation = CardDefaults.cardElevation(2.dp)
-//                            ) {
-////                                ExpenseLineChart(entries, monthLabels, currency)
-//                            }
-//                        } else {
-//                            Text("No data available", Modifier.padding(16.dp))
-//                        }
                     }
                 }
             }
         }
     )
 }
-
-@Composable
-fun ExpenseComparisonCard(currentMonthTotal: Float, lastMonthTotal: Float, currency: String) {
-    val percentageChange = if (lastMonthTotal > 0) {
-        ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100
-    } else {
-        0f
-    }
-
-    val changeColor = when {
-        percentageChange > 0 -> Color.Red  // Spending increIased
-        percentageChange < 0 -> Color.Green // Spending decreased
-        else -> Color.Gray // No change
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        colors = CardDefaults.cardColors(Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text("📅 This Month: $currency%.2f".format(currentMonthTotal))
-            Text("📅 Last Month: $currency%.2f".format(lastMonthTotal))
-            Text("📊 Change: %.2f%%".format(percentageChange), color = changeColor)
-        }
-    }
-}
-
-
-
-
-

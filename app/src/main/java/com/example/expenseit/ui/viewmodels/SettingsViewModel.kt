@@ -22,7 +22,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // Method to update the currency in DataStore
     fun setCurrency(newCurrency: String) {
         viewModelScope.launch { dataSource.setCurrency(newCurrency) }
     }

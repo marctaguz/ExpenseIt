@@ -1,11 +1,9 @@
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +20,6 @@ import androidx.navigation.NavController
 import com.example.expenseit.ui.components.PageHeader
 import com.example.expenseit.ui.theme.backgroundLight
 import com.example.expenseit.ui.viewmodels.SettingsViewModel
-import com.exyte.animatednavbar.utils.noRippleClickable
 import com.example.expenseit.R
 import com.example.expenseit.ui.viewmodels.CategoryViewModel
 
@@ -35,7 +32,7 @@ fun SettingsScreen(navController: NavController, modifier: Modifier = Modifier) 
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val categoryViewModel: CategoryViewModel = hiltViewModel()
 
-    // Observe the currency from the ViewModel
+    //observe currency from vm
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
     val categoryCount by categoryViewModel.categoryCount.collectAsStateWithLifecycle()
 
@@ -46,7 +43,6 @@ fun SettingsScreen(navController: NavController, modifier: Modifier = Modifier) 
     Scaffold(
         content = { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
-                // Header
                 Column(
                     modifier = Modifier
                         .padding(innerPadding)
@@ -249,7 +245,7 @@ fun CurrencySelectionDialog(
     onCurrencySelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val currencies = listOf("$", "€", "£", "¥") // Add other currencies as needed
+    val currencies = listOf("$", "€", "£", "¥")
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Currency") },

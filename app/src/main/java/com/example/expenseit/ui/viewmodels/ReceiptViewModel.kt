@@ -61,7 +61,7 @@ class ReceiptViewModel @Inject constructor(
                 val request = ImageRequest.Builder(context)
                     .data(receipt.imageUrl)
                     .build()
-                Coil.imageLoader(context).enqueue(request) // Use the default ImageLoader
+                Coil.imageLoader(context).enqueue(request)
             }
         }
     }

@@ -22,8 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.expenseit.ui.theme.AppTypography
-import com.example.expenseit.ui.theme.displayFontFamily
 
 @Composable
 fun PageHeader(
@@ -64,17 +62,15 @@ fun PageHeader(
             Spacer(modifier = Modifier.size(48.dp))
         }
 
-        // Title (always centered)
         Text(
             text = title,
             color = Color.White,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f) // Take up remaining space
+            modifier = Modifier.weight(1f)
         )
 
-        // Right Action Button
         if (rightActionButtonVisible) {
             IconButton(onClick = onRightAction) {
                 rightActionIcon()

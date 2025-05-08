@@ -11,18 +11,14 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.mikephil.charting.charts.PieChart
-import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.DefaultValueFormatter
-import com.github.mikephil.charting.formatter.IAxisValueFormatter
 import com.github.mikephil.charting.formatter.IValueFormatter
-import com.github.mikephil.charting.utils.ColorTemplate
 import com.github.mikephil.charting.utils.ViewPortHandler
-import com.patrykandpatrick.vico.core.cartesian.marker.DefaultCartesianMarker.ValueFormatter
 
 @Composable
 fun ExpensePieChart(entries: List<PieEntry>) {
@@ -77,7 +73,7 @@ fun ExpensePieChart(entries: List<PieEntry>) {
             pieChart.setEntryLabelColor(Color.Black.toArgb())
             pieChart.animateY(1000)
 
-            // 🔁 Animate selection shift when a slice is selected
+            // animate selection shift when a slice is selected
             pieChart.setOnChartValueSelectedListener(object : com.github.mikephil.charting.listener.OnChartValueSelectedListener {
                 override fun onValueSelected(e: Entry?, h: com.github.mikephil.charting.highlight.Highlight?) {
                     val animator = ValueAnimator.ofFloat(dataSet.selectionShift, 12f)
@@ -123,11 +119,8 @@ fun ExpensePieChart(entries: List<PieEntry>) {
             pieChart
         },
         update = { pieChart ->
-            // When 'entries' state changes, update the data set in the chart.
             (pieChart.data?.dataSet as? PieDataSet)?.let { dataSet ->
-                // Replace the current entries with the new ones.
                 dataSet.values = entries
-                // Notify the chart that the data has changed.
                 pieChart.data?.notifyDataChanged()
                 pieChart.notifyDataSetChanged()
                 pieChart.invalidate()

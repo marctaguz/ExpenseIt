@@ -17,11 +17,9 @@ object Keys {
 class SettingsDataStoreManager @Inject constructor(context: Context) : CurrencyDataSource {
     private val dataStore = context.dataStore
 
-    // Flow to read the saved currency
     override val currency: Flow<String> = dataStore.data
         .map { prefs -> prefs[Keys.CURRENCY] ?: "$" }
 
-    // Suspend function to save currency
     override suspend fun setCurrency(value: String) {
         dataStore.edit { prefs -> prefs[Keys.CURRENCY] = value }
     }

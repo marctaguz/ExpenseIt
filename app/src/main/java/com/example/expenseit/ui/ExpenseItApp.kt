@@ -61,7 +61,6 @@ fun ExpenseItApp() {
         navController.addOnDestinationChangedListener { _, destination, _ ->
             currentRoute = destination.route ?: "expense_list"
 
-            // Get the index of the destination in the navigationBarItems list
             val newIndex = navigationBarItems.indexOfFirst { it.route == destination.route }
             if (newIndex >= 0) {
                 selectedIndex = newIndex

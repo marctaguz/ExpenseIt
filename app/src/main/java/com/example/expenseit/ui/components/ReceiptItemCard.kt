@@ -34,7 +34,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.expenseit.data.local.entities.ReceiptItem
 import com.example.expenseit.ui.viewmodels.SettingsViewModel
-import java.math.BigDecimal
 
 @Composable
 fun ReceiptItemCard(
@@ -58,9 +57,9 @@ fun ReceiptItemCard(
             .padding(vertical = 8.dp, horizontal = 16.dp)
     ) {
         if (isEditing) {
-            // Edit Mode Layout
+            // edit layout
             Column {
-                // Item Name
+                // item name
                 CustomTextField(
                     value = editedItemName,
                     onValueChange = { editedItemName = it },
@@ -70,7 +69,7 @@ fun ReceiptItemCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Quantity & Price Row
+                // quantity & price
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -96,7 +95,6 @@ fun ReceiptItemCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Save Button Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -119,7 +117,7 @@ fun ReceiptItemCard(
                 }
             }
         } else {
-            // View Mode Layout
+            // non-edit layout
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -136,7 +134,7 @@ fun ReceiptItemCard(
                     )
 
                     Row {
-                        // Quantity & Price Row
+                        // quantity & price
                         Text(
                             text = "${if (item.quantity.toDouble() == item.quantity.toDouble()) item.quantity else item.quantity} × ",
                             color = Color.Gray
@@ -148,7 +146,7 @@ fun ReceiptItemCard(
                     }
                 }
 
-                // Total Price
+                // total price
                 Text(
                     text = "$currency${String.format("%.2f", item.quantity * item.price.toDouble())}",
                     modifier = Modifier.weight(1f),
@@ -156,31 +154,30 @@ fun ReceiptItemCard(
                     fontWeight = FontWeight.Bold
                 )
 
-                // Edit and Delete Buttons
                 Row(
-                    modifier = Modifier.width(80.dp), // Constrain the width of the buttons
+                    modifier = Modifier.width(80.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
                     IconButton(
                         onClick = { onEditClick() },
-                        modifier = Modifier.padding(0.dp) // Remove padding around the button
+                        modifier = Modifier.padding(0.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit",
                             tint = Color.Gray,
-                            modifier = Modifier.size(20.dp) // Reduce icon size
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     IconButton(
                         onClick = onDelete,
-                        modifier = Modifier.padding(0.dp) // Remove padding around the button
+                        modifier = Modifier.padding(0.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp) // Reduce icon size
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }

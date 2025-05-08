@@ -5,4 +5,5 @@ import com.example.expenseit.BuildConfig
 
 object Constants {
     const val API_KEY = BuildConfig.AZURE_API_KEY
+    const val ENDPOINT = "https://expenseit.cognitiveservices.azure.com"
 }

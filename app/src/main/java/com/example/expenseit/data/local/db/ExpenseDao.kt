@@ -3,7 +3,6 @@ package com.example.expenseit.data.local.db
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Delete
 import androidx.room.OnConflictStrategy
 import androidx.room.Update
 import com.example.expenseit.data.local.entities.CategoryTotal

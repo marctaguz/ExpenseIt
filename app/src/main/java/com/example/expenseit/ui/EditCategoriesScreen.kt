@@ -66,17 +66,14 @@ fun EditCategoriesScreen(
     var newCategoryName by remember { mutableStateOf("") }
     var newCategoryColor by remember { mutableStateOf("categoryColour1") }
 
-    // Local state for the list
     var localCategories by remember { mutableStateOf(categories) }
 
-    // Update localCategories when categories change (e.g., from ViewModel)
     LaunchedEffect(categories) {
         localCategories = categories
     }
 
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { fromIndex, toIndex ->
-        // Update the local list immediately for smooth UI updates
         localCategories = localCategories.toMutableList().apply {
             add(toIndex.index, removeAt(fromIndex.index))
         }

@@ -1,9 +1,7 @@
 package com.example.expenseit.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,15 +15,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,12 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.expenseit.R
-import com.example.expenseit.data.local.entities.Receipt
 import com.example.expenseit.data.local.entities.ReceiptWithItems
+import com.example.expenseit.ui.viewmodels.SettingsViewModel
 import com.example.expenseit.utils.DateUtils
 import com.exyte.animatednavbar.utils.noRippleClickable
 
@@ -49,6 +45,8 @@ import com.exyte.animatednavbar.utils.noRippleClickable
 fun ReceiptListItem(receiptWithItems: ReceiptWithItems, navController: NavController) {
     val receipt = receiptWithItems.receipt
     val numberOfItems = receiptWithItems.items.size
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
 
     Row(
         modifier = Modifier
@@ -58,7 +56,7 @@ fun ReceiptListItem(receiptWithItems: ReceiptWithItems, navController: NavContro
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Thumbnail
+        // thumbnail
         Box(
             modifier = Modifier
                 .size(52.dp)
@@ -78,7 +76,7 @@ fun ReceiptListItem(receiptWithItems: ReceiptWithItems, navController: NavContro
             )
         }
 
-        // Receipt Details
+        // receipt details
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -98,7 +96,7 @@ fun ReceiptListItem(receiptWithItems: ReceiptWithItems, navController: NavContro
                     color = Color.Gray
                 )
                 Text(
-                    text = " • $${"%.2f".format(receipt.totalPrice)} • $numberOfItems items",
+                    text = " • $currency${"%.2f".format(receipt.totalPrice)} • $numberOfItems items",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     maxLines = 1,
@@ -107,7 +105,7 @@ fun ReceiptListItem(receiptWithItems: ReceiptWithItems, navController: NavContro
             }
         }
 
-        // Status
+        // status
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -14,9 +14,6 @@ import javax.inject.Inject
 class StatsViewModel @Inject constructor(
     private val expenseDao: ExpenseDao
 ) : ViewModel() {
-    val entries = expenseDao.getAllExpensesByMonth()
-    val monthlyExpenses = expenseDao.getMonthlyExpenses()
-
 
     fun getEntriesForChart(entries: List<ExpenseSummary>): List<Entry> {
         return entries.mapIndexed { index, entry ->
@@ -37,7 +34,6 @@ class StatsViewModel @Inject constructor(
         return Pair(currentMonth, lastMonth)
     }
 
-    // New: Expose a function for category totals for a specific month.
     fun getCategoryTotalsForMonth(month: String) : Flow<List<CategoryTotal>> {
         return expenseDao.getCategoryTotalsForMonth(month)
     }
