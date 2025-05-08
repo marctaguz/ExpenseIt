@@ -112,7 +112,6 @@ fun ExpenseFormScreen(
                     leftActionButtonVisible = true,
                     onLeftAction = { navController.popBackStack() }
                 )
-                // Delete button (only visible when editing an expense)
                 if (expenseId != null) {
                     IconButton(onClick = {
                         showDeleteConfirmationDialog = true
@@ -132,13 +131,11 @@ fun ExpenseFormScreen(
                     if (title.isNotEmpty() && amount.isNotEmpty() && categoryId != 0L && amountError.isEmpty()) {
                         val parsedAmount = amount.toBigDecimal()
                         if (expenseId != null) {
-                            // Update existing expense
                             expenseViewModel.updateExpense(expenseId.toLong(), title, parsedAmount, categoryId, description, date
                             ) {
                                 navController.popBackStack()
                             }
                         } else {
-                            // Add new expense
                             expenseViewModel.addExpense(title, parsedAmount, categoryId, description, date
                             ) {
                                 navController.popBackStack()
@@ -260,10 +257,9 @@ fun ExpenseFormScreen(
             text = { Text("Do you really want to delete this expense? This action cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = {
-                    // Perform the deletion
                     if (expenseId != null) {
                         expenseViewModel.deleteExpense(expenseId.toLong()) {
-                            navController.popBackStack() // Navigate back after deletion
+                            navController.popBackStack()
                         }
                     }
                     showDeleteConfirmationDialog = false

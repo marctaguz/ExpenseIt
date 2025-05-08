@@ -1,6 +1,5 @@
 package com.example.expenseit.ui
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,7 +50,6 @@ fun ExpenseListScreen(
 ) {
     val lazyListState = rememberLazyListState()
     val expenses by expenseViewModel.expenses.collectAsState()
-    val categories by categoryViewModel.categories.collectAsState()
 
     val groupedExpenses = expenses.groupBy { expense ->
         SimpleDateFormat("MMM dd,yyyy", Locale.getDefault()).format(expense.date)
@@ -167,6 +165,4 @@ fun ExpenseListScreen(
         }
     }
 
-
 }
-

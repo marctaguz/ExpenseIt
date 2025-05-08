@@ -51,7 +51,7 @@ class ExpenseViewModel @Inject constructor(
         description: String,
         date: Long,
         receiptId: Int? = null,
-        onSuccess: () -> Unit,
+        onSuccess: (Long) -> Unit,
     ) {
 
         val newExpense = Expense(
@@ -63,9 +63,8 @@ class ExpenseViewModel @Inject constructor(
             receiptId = receiptId
         )
         viewModelScope.launch {
-            expenseDao.insert(newExpense)
-            observeExpenses()
-            onSuccess()
+            val newId: Long = expenseDao.insert(newExpense)
+            onSuccess(newId)
         }
     }
 
@@ -80,7 +79,6 @@ class ExpenseViewModel @Inject constructor(
         )
         viewModelScope.launch {
             expenseDao.update(updatedExpense)
-            observeExpenses()
             onSuccess()
         }
     }
@@ -88,17 +86,8 @@ class ExpenseViewModel @Inject constructor(
     fun deleteExpense(expenseId: Long, onSuccess: () -> Unit) {
         viewModelScope.launch {
             expenseDao.deleteExpenseById(expenseId)
-            observeExpenses()
             onSuccess()
         }
-    }
-
-    fun getExpensesByDate(): Flow<Map<Long, BigDecimal>> {
-        return expenseDao.getAllExpenses()
-            .map { expenses ->
-                expenses.groupBy { it.date }
-                    .mapValues { (_, items) -> items.sumOf { it.amount } }
-            }
     }
 
 }

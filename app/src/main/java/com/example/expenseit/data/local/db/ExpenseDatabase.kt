@@ -58,7 +58,6 @@ val MIGRATION_3_5 = object : Migration(3, 5) {
 
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // ✅ Create a new table with the correct schema
         db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS `receipts_new` (
@@ -71,7 +70,6 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
             """
         )
 
-        // ✅ Copy existing data to the new table
         db.execSQL(
             """
             INSERT INTO `receipts_new` (id, merchantName, transactionDate, totalPrice, imageUrl)
@@ -79,7 +77,6 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
             """
         )
 
-        // ✅ Remove old table and rename the new table
         db.execSQL("DROP TABLE receipts")
         db.execSQL("ALTER TABLE receipts_new RENAME TO receipts")
     }
@@ -87,10 +84,8 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
 
 val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // Step 1: Add new column 'date' with a default value (e.g., Unix timestamp 0)
         db.execSQL("ALTER TABLE receipts ADD COLUMN date INTEGER NOT NULL DEFAULT 0")
 
-        // Step 2: Convert 'transactionDate' (TEXT) to 'date' (INTEGER)
         db.execSQL("""
             UPDATE receipts 
             SET date = CASE 
@@ -100,7 +95,6 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
             END
         """)
 
-        // Step 3: Remove old column (SQLite doesn't support DROP COLUMN directly)
         db.execSQL("""
             CREATE TABLE receipts_new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -111,16 +105,13 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
             )
         """)
 
-        // Step 4: Copy existing data to the new table
         db.execSQL("""
             INSERT INTO receipts_new (id, merchantName, date, totalPrice, imageUrl)
             SELECT id, merchantName, date, totalPrice, imageUrl FROM receipts
         """)
 
-        // Step 5: Drop old table
         db.execSQL("DROP TABLE receipts")
 
-        // Step 6: Rename new table to original name
         db.execSQL("ALTER TABLE receipts_new RENAME TO receipts")
     }
 }
@@ -128,7 +119,6 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // ✅ Add new column "receiptId" (nullable by default)
         db.execSQL("ALTER TABLE expenses ADD COLUMN receiptId INTEGER NULL")
     }
 }
@@ -143,7 +133,6 @@ val MIGRATION_3_4 = object : Migration(2, 3) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE categories ADD COLUMN color TEXT NOT NULL DEFAULT 'categoryColour1'")
 
-        // Assign specific colors to existing categories based on their names
         val categoryColors = mapOf(
             "Entertainment" to "categoryColour1",
             "Transport" to "categoryColour2",
@@ -156,7 +145,6 @@ val MIGRATION_3_4 = object : Migration(2, 3) {
             "Other" to "categoryColour9"
         )
 
-        // Update the color for each category
         categoryColors.forEach { (name, color) ->
             db.execSQL("UPDATE categories SET color = '$color' WHERE name = '$name'")
         }
@@ -165,11 +153,8 @@ val MIGRATION_3_4 = object : Migration(2, 3) {
 
 val MIGRATION_4_5 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // Step 1: Add the new categoryId column
         db.execSQL("ALTER TABLE expenses ADD COLUMN categoryId INTEGER NOT NULL DEFAULT 1")
 
-        // Step 2: Populate the categoryId column based on the existing category names
-        // Fetch all categories from the categories table
         val cursor = db.query("SELECT id, name FROM categories")
         val categoryMap = mutableMapOf<String, Long>()
         while (cursor.moveToNext()) {
@@ -179,12 +164,10 @@ val MIGRATION_4_5 = object : Migration(3, 4) {
         }
         cursor.close()
 
-        // Update the categoryId for each expense based on the category name
         for ((categoryName, categoryId) in categoryMap) {
             db.execSQL("UPDATE expenses SET categoryId = $categoryId WHERE category = '$categoryName'")
         }
 
-        // Step 3: Drop the old category column
         db.execSQL("ALTER TABLE expenses DROP COLUMN category")
     }
 }

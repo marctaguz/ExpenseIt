@@ -18,7 +18,7 @@ data class Receipt(
 @Entity(tableName = "receipt_items")
 data class ReceiptItem(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    var receiptId: Int, // Foreign Key linking to Receipt
+    var receiptId: Int,
     val itemName: String,
     val quantity: Int,
     val price: BigDecimal = BigDecimal("0.00")

@@ -2,6 +2,7 @@ package com.example.expenseit.utils
 
 import android.util.Log
 import com.example.expenseit.utils.Constants.API_KEY
+import com.example.expenseit.utils.Constants.ENDPOINT
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -12,7 +13,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class ReceiptApiClient {
     private val apiKey = API_KEY
-    private val endpoint = "https://expenseit.cognitiveservices.azure.com"
+    private val endpoint = ENDPOINT
     private val modelID = "prebuilt-receipt"
     private val apiVersion = "2024-11-30"
     //private val documentUrl = "https://firebasestorage.googleapis.com/v0/b/expenseit-86eeb.firebasestorage.app/o/receipts%2FWhatsApp%20Image%202025-02-16%20at%203.09.42%E2%80%AFAM.jpeg?alt=media&token=e7cf18cf-d2e9-4c4b-95e7-1026f755ef70"
@@ -53,7 +54,7 @@ class ReceiptApiClient {
                     val operationLocation = response.headers()["Operation-Location"]
                     if (operationLocation != null) {
                         Log.d("ReceiptApiClient", "Operation-Location: $operationLocation")
-                        fetchScanResult(operationLocation) // Fetch the analysis result
+                        fetchScanResult(operationLocation) // Fetch the scan result
                     } else {
                         Log.e("ReceiptApiClient", "Operation-Location header missing")
                         null
@@ -74,8 +75,8 @@ class ReceiptApiClient {
             try {
                 var result: ScanResult? = null
                 var retries = 0
-                val maxRetries = 10 // Maximum number of retries
-                val delayMillis = 2000L // Delay between retries (2 seconds)
+                val maxRetries = 10 // max number of retries
+                val delayMillis = 2000L // delay between retries (2 seconds)
 
                 while (retries < maxRetries) {
                     val response = apiService.getScanResult(operationLocation, apiKey).execute()

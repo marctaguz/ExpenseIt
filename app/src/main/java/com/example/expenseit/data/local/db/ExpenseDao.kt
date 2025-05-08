@@ -3,7 +3,6 @@ package com.example.expenseit.data.local.db
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Delete
 import androidx.room.OnConflictStrategy
 import androidx.room.Update
 import com.example.expenseit.data.local.entities.CategoryTotal
@@ -14,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ExpenseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(expense: Expense)
+    suspend fun insert(expense: Expense): Long
 
     @Update
     suspend fun update(expense: Expense)

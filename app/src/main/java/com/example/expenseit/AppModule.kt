@@ -14,7 +14,10 @@ import com.example.expenseit.data.local.db.MIGRATION_5_6
 import com.example.expenseit.data.local.db.MIGRATION_6_7
 import com.example.expenseit.data.local.db.MIGRATION_7_8
 import com.example.expenseit.data.local.db.ReceiptDao
+import com.example.expenseit.data.local.db.SettingsDataStoreManager
 import com.example.expenseit.data.repository.CategoryRepository
+import com.example.expenseit.data.repository.CurrencyDataSource
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,16 +25,14 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
-@InstallIn(SingletonComponent::class) // Singleton scope
+@InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // ✅ Provide Application Context
     @Provides
     fun provideContext(application: android.app.Application): Context {
         return application.applicationContext
     }
 
-    // ✅ Provide Database Instance
     @Provides
     @Singleton
     fun provideDatabase(context: Context): ExpenseDatabase {
@@ -40,7 +41,7 @@ object AppModule {
             ExpenseDatabase::class.java,
             "expense_database"
         ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
-            .fallbackToDestructiveMigration() // ⚠️ Resets database if schema changes
+            .fallbackToDestructiveMigration()
             .build()
     }
 
@@ -63,4 +64,14 @@ object AppModule {
     fun provideCategoryRepository(categoryDao: CategoryDao): CategoryRepository {
         return CategoryRepository(categoryDao)
     }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class CurrencyModule {
+    @Binds
+    @Singleton
+    abstract fun bindCurrencyDataSource(
+        settings: SettingsDataStoreManager
+    ): CurrencyDataSource
 }
